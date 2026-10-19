@@ -18,26 +18,31 @@
   --julia:#f472b6; --julia-2:#fb923c;
   --p1:#4ade80; --p2:#facc15; --p3:#f43f5e;
   --ok:#4ade80;
+  --doing:#a78bfa;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh;
-  background-image:radial-gradient(900px 500px at 10% -10%,rgba(168,85,247,.22),transparent 60%),radial-gradient(800px 500px at 100% 0%,rgba(249,115,22,.14),transparent 60%),radial-gradient(700px 600px at 50% 110%,rgba(56,189,248,.12),transparent 60%);background-attachment:fixed}
+  background-image:radial-gradient(900px 500px at 10% -10%,rgba(168,85,247,.13),transparent 60%),radial-gradient(800px 500px at 100% 0%,rgba(249,115,22,.07),transparent 60%);background-attachment:fixed}
 button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
+button{cursor:pointer;touch-action:manipulation}
+*{-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid #c084fc;outline-offset:2px;border-radius:10px}
+::selection{background:rgba(236,72,153,.35)}
 .hidden{display:none!important}
 
 [data-p="Ramon"]{--c:var(--ramon);--c2:var(--ramon-2)}
 [data-p="Joris"]{--c:var(--joris);--c2:var(--joris-2)}
 [data-p="Julia"]{--c:var(--julia);--c2:var(--julia-2)}
 [data-p="none"]{--c:#8b85b5;--c2:#5b557f}
-.avatar{border-radius:50%;background:linear-gradient(135deg,var(--c),var(--c2));color:#0c0a1d;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:none;width:26px;height:26px;font-size:12px}
+.avatar{position:relative;overflow:hidden;border-radius:50%;background:linear-gradient(135deg,var(--c),var(--c2));color:#0c0a1d;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:none;width:26px;height:26px;font-size:12px}
+.avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 /* ---------- Titel ---------- */
 .brand{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .brand h1{margin:0;font-size:22px;font-weight:900;letter-spacing:-.02em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .brand .dash{color:var(--muted);font-weight:700}
-.gig{font-weight:900;font-size:14px;letter-spacing:.04em;padding:3px 9px;border-radius:8px;background:var(--grad);color:#fff;transform:rotate(-3deg);box-shadow:0 4px 18px rgba(236,72,153,.4)}
+.gig{font-weight:900;font-size:14px;letter-spacing:.04em;padding:3px 9px;border-radius:8px;background:var(--grad);color:#fff;transform:rotate(-3deg)}
 
 /* ---------- Login ---------- */
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
@@ -47,9 +52,8 @@ button{cursor:pointer}
 .login-card .gig{font-size:18px}
 .login-card p{color:var(--muted);margin:0 0 30px;font-size:16px}
 .people{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.person-btn{border:0;border-radius:22px;padding:26px 10px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;color:#0c0a1d;background:linear-gradient(145deg,var(--c),var(--c2));box-shadow:0 10px 30px -8px var(--c);transition:transform .15s}
-.person-btn:hover{transform:translateY(-4px) scale(1.02)}
-.person-btn .avatar{width:62px;height:62px;font-size:26px;background:rgba(255,255,255,.3);color:#0c0a1d}
+.person-btn{border:0;border-radius:22px;padding:26px 10px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;color:#0c0a1d;background:linear-gradient(145deg,var(--c),var(--c2));transition:transform .15s}
+.person-btn .avatar{width:62px;height:62px;font-size:26px;background:rgba(255,255,255,.3);color:#0c0a1d;box-shadow:0 0 0 3px rgba(255,255,255,.55)}
 .person-btn strong{font-size:18px;font-weight:800}
 .person-btn small{font-size:12px;font-weight:600;opacity:.75}
 
@@ -67,68 +71,87 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .hello h2{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em}
 .hello p{margin:4px 0 0;color:var(--muted)}
 
+/* Dashboard */
+.brand-btn{background:none;border:0;padding:0;text-align:left}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:32px}
+.tile{position:relative;border:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0)),var(--surface);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 30px -22px rgba(0,0,0,.9);border-radius:22px;padding:20px;text-align:left;display:flex;flex-direction:column;gap:14px;min-height:190px;transition:transform .15s,border-color .15s}
+.tile .ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
+.tile h3{margin:0;font-size:20px;font-weight:800}
+.tile p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.tile .nums{display:flex;gap:18px;margin-top:auto}
+.tile .nums b{display:block;font-size:24px;font-weight:800;line-height:1.1}
+.tile .nums span{font-size:12px;color:var(--muted);font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.tile .nums span i{width:7px;height:7px;border-radius:50%;background:var(--dc)}
+.tile .go{position:absolute;right:20px;top:20px;color:var(--muted);font-weight:700;font-size:13px}
+.tile.soon{border-style:dashed;background:transparent;cursor:default}
+.tile.soon .ico{color:var(--muted)}
+.tile.soon .badge-soon{position:absolute;right:16px;top:16px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:3px 9px}
+.back{display:inline-flex;align-items:center;gap:6px;background:none;border:0;color:var(--muted);font-weight:700;font-size:14px;padding:0;margin-bottom:14px}
+.back:hover{color:var(--text)}
+@media (max-width:640px){ .tiles{grid-template-columns:1fr} .tile{min-height:0} }
+
 /* Personen = Aufgabe anlegen */
 .section-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px}
 .team{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:28px}
-.team-card{border:0;border-radius:20px;padding:16px;text-align:left;color:#0c0a1d;background:linear-gradient(145deg,var(--c),var(--c2));box-shadow:0 10px 28px -10px var(--c);display:flex;flex-direction:column;gap:12px;transition:transform .15s;position:relative;overflow:hidden}
-.team-card:hover{transform:translateY(-3px)}
-.team-card::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.15)}
+.team-card{border:0;border-radius:20px;padding:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 12px 26px -18px var(--c);text-align:left;color:#0c0a1d;background:linear-gradient(145deg,var(--c),var(--c2));display:flex;flex-direction:column;gap:12px;transition:transform .15s;position:relative;overflow:hidden}
 .team-card .top{display:flex;align-items:center;gap:10px}
-.team-card .avatar{width:40px;height:40px;font-size:17px;background:rgba(255,255,255,.3);color:#0c0a1d}
+.team-card .avatar{width:44px;height:44px;font-size:18px;background:rgba(255,255,255,.3);color:#0c0a1d;box-shadow:0 0 0 2px rgba(255,255,255,.55)}
 .team-card strong{font-size:17px;font-weight:800;display:block}
 .team-card small{font-size:12px;font-weight:600;opacity:.75}
-.team-card .add{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;background:rgba(12,10,29,.85);color:#fff;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
+.team-card .add{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;background:rgba(12,10,29,.82);color:#fff;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;transition:background .15s}
+.team-card:hover .add{background:#0c0a1d}
 
 /* Tabs */
 .tabs{display:flex;gap:6px;margin-bottom:14px;background:var(--surface);border:1px solid var(--border);padding:4px;border-radius:14px;width:fit-content;max-width:100%}
 .tabs button{border:0;background:none;border-radius:10px;padding:8px 14px;font-weight:700;font-size:14px;color:var(--muted);white-space:nowrap}
-.tabs button.on{background:var(--grad);color:#fff}
+.tabs button.on{background:var(--grad);color:#fff;box-shadow:0 4px 12px -6px rgba(236,72,153,.7)}
 .tabs .n{opacity:.75;font-weight:600;margin-left:4px}
 
 /* Aufgaben */
 .tasks{display:flex;flex-direction:column;gap:10px}
-.task{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:14px 16px 14px 20px;display:flex;gap:14px;cursor:pointer;transition:transform .15s,border-color .15s;overflow:hidden}
-.task::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--pc)}
-.task:hover{transform:translateY(-2px);border-color:var(--pc)}
+.task{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0)) ,var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px 18px 14px 24px;display:flex;gap:14px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 24px -18px rgba(0,0,0,.8)}
+/* Strich vorne: weiß = noch nicht angenommen, Personenfarbe = angenommen/erledigt */
+.task::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:5px;border-radius:0 5px 5px 0;background:#f3f1ff}
+.task.doing::before,.task.done::before{background:linear-gradient(180deg,var(--c),var(--c2))}
 .task[data-prio="1"]{--pc:var(--p1)} .task[data-prio="2"]{--pc:var(--p2)} .task[data-prio="3"]{--pc:var(--p3)}
-.task[data-prio="3"]:not(.done){background:linear-gradient(90deg,rgba(244,63,94,.12),var(--surface) 45%)}
-.task.done{opacity:.55}
+.task.done{opacity:.6}
 .task.done .t-title{text-decoration:line-through}
 .t-top{display:flex;gap:12px;align-items:flex-start}
 .t-top .t-title{flex:1;min-width:0}
 .act{border:0;border-radius:999px;padding:7px 14px;font-weight:800;font-size:13px;white-space:nowrap;flex:none;transition:transform .12s,filter .12s}
-.act:hover{transform:scale(1.05);filter:brightness(1.1)}
-.act.take{background:var(--grad);color:#fff;box-shadow:0 4px 14px -4px rgba(236,72,153,.6)}
-.act.finish{background:var(--ok);color:#0c0a1d;box-shadow:0 4px 14px -4px rgba(74,222,128,.6)}
-.task.doing{border-color:rgba(250,204,21,.45);box-shadow:0 0 0 1px rgba(250,204,21,.15),0 8px 24px -12px rgba(250,204,21,.5)}
-.pill.doing{background:rgba(250,204,21,.16);color:var(--p2)}
-.pill.doing i{width:7px;height:7px;border-radius:50%;background:var(--p2);animation:blink 1.2s infinite}
+.act.take{background:var(--grad);color:#fff}
+.act.finish{background:var(--ok);color:#0c0a1d}
+.task.doing{border-color:color-mix(in srgb,var(--c) 35%,var(--border))}
+.pill.doing{background:rgba(167,139,250,.16);color:var(--doing);border-color:rgba(167,139,250,.25)}
+.pill.doing i{width:7px;height:7px;border-radius:50%;background:var(--doing);animation:blink 1.2s infinite}
 @keyframes blink{50%{opacity:.25}}
 .pill.donep{background:rgba(74,222,128,.16);color:var(--ok)}
 .t-body{flex:1;min-width:0}
 .t-title{font-weight:700;font-size:16px;word-break:break-word}
 .t-desc{color:var(--muted);font-size:13.5px;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word}
 .t-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
-.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px 3px 8px;font-weight:700;font-size:12px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;border-radius:999px;padding:0 10px 0 8px;font-weight:650;font-size:12px;background:var(--surface-2);color:var(--muted);white-space:nowrap;border:1px solid rgba(255,255,255,.04)}
 .pill.prio{background:color-mix(in srgb,var(--pc) 18%,transparent);color:var(--pc)}
-.pill.person{background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c);padding-left:3px}
+.pill.person{background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);padding-left:3px;border-color:color-mix(in srgb,var(--c) 22%,transparent)}
 .pill.person .avatar{width:18px;height:18px;font-size:9px}
-.pill.late{background:rgba(244,63,94,.18);color:var(--p3)}
-.pill.soon{background:rgba(250,204,21,.16);color:var(--p2)}
-.by{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
+.pill.due{background:transparent;border-color:var(--border);color:var(--text);font-weight:600}
+.pill.due svg{opacity:.7}
+.pill.due.late{border-style:dashed}
+.t-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.05)}
+.by{color:var(--muted);font-size:12px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cmt{display:inline-flex;align-items:center;gap:5px;background:none;border:1px solid transparent;border-radius:10px;padding:4px 7px;color:var(--muted);font-size:12px;flex:none;transition:color .15s,background .15s}
+.cmt:hover{color:var(--text);background:var(--surface-2)}
+.cmt.has{color:var(--text);background:var(--surface-2);border-color:var(--border)}
+.cmt b{font-weight:700}
+.by .avatar{width:18px;height:18px;font-size:9px}
+.by b{color:var(--text);font-weight:600}
 
 .empty{text-align:center;padding:44px 16px;color:var(--muted);background:var(--surface);border:1px dashed var(--border);border-radius:18px}
 .empty .big{font-size:40px;display:block;margin-bottom:6px}
 .empty strong{display:block;color:var(--text);font-size:17px;margin-bottom:4px}
 
-.feed{margin-top:34px}
-.feed-list{display:flex;flex-direction:column;gap:8px}
-.feed-item{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
-.feed-item b{color:var(--text);font-weight:600}
-.feed-item .avatar{width:22px;height:22px;font-size:10px}
 
-.fab{position:fixed;right:max(20px,calc(50% - 420px));bottom:24px;width:62px;height:62px;border-radius:20px;border:0;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;z-index:30;box-shadow:0 12px 30px -6px rgba(236,72,153,.6);transition:transform .15s}
-.fab:hover{transform:scale(1.07) rotate(90deg)}
+.fab{position:fixed;right:max(20px,calc(50% - 420px));bottom:24px;width:62px;height:62px;border-radius:20px;border:0;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;z-index:30;box-shadow:0 8px 20px -8px rgba(0,0,0,.6);transition:transform .15s}
 
 /* Fenster */
 .overlay{position:fixed;inset:0;background:rgba(5,4,15,.7);backdrop-filter:blur(4px);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px 16px;overflow:auto;animation:fade .15s}
@@ -154,7 +177,7 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .pick button.on{border-color:var(--pc,var(--c));background:color-mix(in srgb,var(--pc,var(--c)) 16%,transparent);color:var(--pc,var(--c))}
 .pick button[data-prio="1"]{--pc:var(--p1)} .pick button[data-prio="2"]{--pc:var(--p2)} .pick button[data-prio="3"]{--pc:var(--p3)}
 .btn{border:0;border-radius:14px;padding:11px 18px;font-weight:700;display:inline-flex;align-items:center;gap:8px;background:var(--surface-2);color:var(--text)}
-.btn-primary{background:var(--grad);color:#fff;box-shadow:0 6px 18px -4px rgba(236,72,153,.5)}
+.btn-primary{background:var(--grad);color:#fff}
 .btn-ok{background:var(--ok);color:#0c0a1d}
 .btn-link{background:none;color:var(--muted);padding:11px 8px;margin-right:auto;font-weight:600}
 .btn-link:hover{color:var(--p3)}
@@ -184,7 +207,6 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:90}
   .team-card .add{align-self:center;padding:5px 10px;font-size:12px}
   .team-card .add span{display:none}
   .hello h2{font-size:22px}
-  .by{margin-left:0;width:100%}
   .login-card .brand h1{font-size:26px}
 }
 @media (max-width:480px){
@@ -194,6 +216,18 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:90}
   .person-btn small{margin-left:auto}
   .pick.who{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+@media (hover:hover){
+  .person-btn:hover{transform:translateY(-4px) scale(1.02)}
+  .tile:not(.soon):hover{transform:translateY(-3px);border-color:#4a4380}
+  .team-card:hover{transform:translateY(-3px)}
+  .task:hover{transform:translateY(-2px);border-color:#3d3770;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 14px 30px -18px rgba(0,0,0,.9)}
+  .act:hover{transform:scale(1.05);filter:brightness(1.1)}
+  .fab:hover{transform:scale(1.07) rotate(90deg)}
+}
+/* iPhone zoomt bei Eingabefeldern unter 16px automatisch rein – verhindern */
+@media (max-width:640px){ .field input,.field textarea,.c-form input{font-size:16px} }
+.act:active,.btn:active,.cmt:active,.fab:active{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
 <body>
@@ -211,23 +245,29 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:90}
 <section id="app" class="hidden">
   <header>
     <div class="bar">
-      <div class="brand"><h1>Julias Mitarbeiter Express</h1><span class="dash">–</span><span class="gig">!GIG</span></div>
+      <button class="brand brand-btn" data-go="dash" title="Zum Dashboard"><h1>Julias Mitarbeiter Express</h1><span class="dash">–</span><span class="gig">!GIG</span></button>
       <button class="me-btn" id="meBtn" title="Person wechseln"></button>
     </div>
   </header>
 
   <main>
-    <div class="hello"><h2 id="helloTitle"></h2><p id="helloSub"></p></div>
+    <!-- Dashboard -->
+    <div id="dashView">
+      <div class="hello"><h2 id="helloTitle"></h2><p id="dashSub"></p></div>
+      <p class="section-label">Bereiche</p>
+      <div class="tiles" id="tiles"></div>
+    </div>
 
-    <p class="section-label">Neue Aufgabe für …</p>
-    <div class="team" id="team"></div>
+    <!-- To-Do-Liste -->
+    <div id="todoView" class="hidden">
+      <button class="back" data-go="dash">← Dashboard</button>
+      <div class="hello"><h2>To-Do-Liste</h2><p id="helloSub"></p></div>
 
-    <div class="tabs" id="tabs"></div>
-    <div id="content"></div>
+      <p class="section-label">Neue Aufgabe für …</p>
+      <div class="team" id="team"></div>
 
-    <div class="feed" id="feedWrap">
-      <p class="section-label">Zuletzt passiert</p>
-      <div class="feed-list" id="feed"></div>
+      <div class="tabs" id="tabs"></div>
+      <div id="content"></div>
     </div>
   </main>
 
@@ -267,6 +307,7 @@ const PRIOS = {
 let me = load('todo.me', null);
 let data = load('todo.cache', { tasks: [], activity: [], rev: 0 });
 let tab = load('todo.tab', 'open');
+let view = 'dash'; // Start immer auf dem Dashboard
 let lastRaw = null;
 let openDetailId = null;
 
@@ -290,12 +331,14 @@ async function pushRemote(d) {
   const r = await fetch(STORE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(d) });
   if (!r.ok) throw new Error('HTTP ' + r.status);
 }
+let pending = 0;
 async function pull() {
+  if (pending) return;
   try {
     const remote = await fetchRemote();
     const raw = JSON.stringify(remote);
     setSync('');
-    if (raw !== lastRaw) { lastRaw = raw; data = remote; save('todo.cache', data); render(); }
+    if (raw !== lastRaw && !pending) { lastRaw = raw; data = remote; save('todo.cache', data); render(); }
   } catch { setSync('err'); }
 }
 
@@ -303,6 +346,7 @@ async function pull() {
 let queue = Promise.resolve();
 function mutate(fn, activity) {
   fn(data); if (activity) addActivity(data, activity); render();
+  pending++;
   queue = queue.then(async () => {
     setSync('busy');
     try {
@@ -313,6 +357,7 @@ function mutate(fn, activity) {
       data = remote; lastRaw = JSON.stringify(remote); save('todo.cache', data);
       setSync(''); render();
     } catch { setSync('err'); toast('Konnte nicht speichern – Internet prüfen'); }
+    finally { pending--; }
   });
 }
 function addActivity(d, text) { d.activity.unshift({ who: me, text, at: Date.now() }); d.activity = d.activity.slice(0, 40); }
@@ -321,22 +366,25 @@ function addActivity(d, text) { d.activity.unshift({ who: me, text, at: Date.now
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-const avatar = p => `<span class="avatar" data-p="${p ? esc(p) : 'none'}">${p ? esc(p[0]) : '?'}</span>`;
+// Profilbilder liegen (wie die Aufgaben) hinter dem geheimen Schlüssel, nicht öffentlich auf GitHub.
+// Fehlt ein Bild, wird der Anfangsbuchstabe gezeigt.
+let PHOTOS = load('todo.photos', {});
+const avatar = p => `<span class="avatar" data-p="${p ? esc(p) : 'none'}">${p ? esc(p[0]) : '?'}${PHOTOS[p] ? `<img src="${PHOTOS[p]}" alt="">` : ''}</span>`;
 const personPill = p => `<span class="pill person" data-p="${esc(p)}">${avatar(p)}${esc(p)}</span>`;
 const prioPill = n => `<span class="pill prio" style="--pc:var(--p${n})">${PRIOS[n].emo} ${PRIOS[n].label}</span>`;
+const chatSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>';
+const calSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
 const xSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 function dueInfo(t) {
   if (!t.due) return null;
   const day = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
   const days = Math.round((day(t.due) - day(Date.now())) / 864e5);
-  let text, cls = '';
-  if (days < 0) { text = days === -1 ? 'seit gestern fällig' : `${-days} Tage überfällig`; cls = 'late'; }
-  else if (days === 0) { text = 'heute fällig'; cls = 'soon'; }
-  else if (days === 1) { text = 'bis morgen'; cls = 'soon'; }
-  else if (days < 7) text = 'bis ' + new Date(t.due).toLocaleDateString('de-DE', { weekday: 'long' });
-  else text = 'bis ' + new Date(t.due).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
-  if (t.status === 'done') cls = '';
+  const date = new Date(t.due).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+  let text = `Bis ${date}`, cls = '';
+  if (days === 0) text = 'Bis heute';
+  else if (days === 1) text = 'Bis morgen';
+  else if (days < 0 && t.status !== 'done') { text = `Bis ${date} · überfällig`; cls = 'late'; }
   return { text, cls, days };
 }
 function ago(ts) {
@@ -368,6 +416,33 @@ function render() {
   const h = new Date().getHours();
   $('#helloTitle').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hey' : 'Guten Abend'}, ${me}! 👋`;
   const hot = mine.filter(t => t.prio === 3).length;
+  // Ansicht umschalten
+  $('#dashView').classList.toggle('hidden', view !== 'dash');
+  $('#todoView').classList.toggle('hidden', view !== 'todo');
+  $('#fab').classList.toggle('hidden', view !== 'todo');
+
+  const doingAll = data.tasks.filter(t => t.status === 'doing');
+  $('#dashSub').textContent = mine.length
+    ? `Du hast ${mine.length} offene Aufgabe${mine.length > 1 ? 'n' : ''}${hot ? ` – ${hot}× sehr wichtig 🔥` : '.'}`
+    : 'Bei dir ist gerade alles erledigt. ✨';
+  // Bereiche – hier können später weitere Kacheln (z. B. Kalender) dazukommen
+  $('#tiles').innerHTML = `
+    <button class="tile" data-go="todo">
+      <span class="go">Öffnen →</span>
+      <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8.5 9l1.5 1.5L13 7.5M8.5 15.5l1.5 1.5 3-3"/></svg></div>
+      <div><h3>To-Do-Liste</h3><p>Aufgaben anlegen, annehmen, erledigen</p></div>
+      <div class="nums">
+        <div><b>${open.filter(t => t.status === 'open').length}</b><span style="--dc:#f3f1ff"><i></i>offen</span></div>
+        <div><b>${doingAll.length}</b><span style="--dc:var(--doing)"><i></i>in Bearbeitung</span></div>
+        <div><b>${mine.length}</b><span style="--dc:var(--c)" data-p="${esc(me)}"><i></i>für dich</span></div>
+      </div>
+    </button>
+    <div class="tile soon">
+      <span class="badge-soon">Bald</span>
+      <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+      <div><h3>Kalender</h3><p>Termine & Schichten – kommt noch</p></div>
+    </div>`;
+
   $('#helloSub').textContent = mine.length
     ? `Du hast ${mine.length} offene Aufgabe${mine.length > 1 ? 'n' : ''}${hot ? ` – ${hot}× sehr wichtig 🔥` : '.'}`
     : 'Bei dir ist gerade alles erledigt. ✨';
@@ -389,9 +464,6 @@ function render() {
 
   $('#content').innerHTML = list.length ? `<div class="tasks">${list.map(taskCard).join('')}</div>` : emptyState();
 
-  const acts = data.activity.slice(0, 6);
-  $('#feedWrap').classList.toggle('hidden', !acts.length);
-  $('#feed').innerHTML = acts.map(a => `<div class="feed-item">${avatar(a.who)}<div><b>${esc(a.who)}</b> ${esc(a.text)} · ${ago(a.at)}</div></div>`).join('');
 
   if (openDetailId) renderDetail(true);
 }
@@ -405,31 +477,37 @@ function emptyState() {
 function taskCard(t) {
   const due = dueInfo(t);
   const nC = (t.comments || []).length;
-  return `<div class="task ${t.status}" data-prio="${t.prio}" data-id="${t.id}">
+  const owner = t.status === 'done' ? (t.doneBy || t.assignee) : t.status === 'doing' ? t.assignee : null;
+  return `<div class="task ${t.status}" data-prio="${t.prio}" data-id="${t.id}"${owner ? ` data-p="${esc(owner)}"` : ''}>
     <div class="t-body">
       <div class="t-top"><div class="t-title">${esc(t.title)}</div>${actionBtn(t)}</div>
       ${t.desc ? `<div class="t-desc">${esc(t.desc)}</div>` : ''}
       <div class="t-meta">
         ${statusPill(t)}
         ${prioPill(t.prio)}
-        ${due ? `<span class="pill ${due.cls}">📅 ${esc(due.text)}</span>` : ''}
-        ${nC ? `<span class="pill">💬 ${nC}</span>` : ''}
-        <span class="by">von ${esc(t.createdBy)} · ${ago(t.createdAt)}</span>
+        ${due ? `<span class="pill due ${due.cls}">${calSvg}${esc(due.text)}</span>` : ''}
+      </div>
+      <div class="t-foot">
+        <span class="by">von ${avatar(t.createdBy)}<b>${esc(t.createdBy)}</b> · ${ago(t.createdAt)}</span>
+        <button class="cmt ${nC ? 'has' : ''}" data-comments="${t.id}" aria-label="${nC ? nC + ' Kommentare' : 'Kommentieren'}" title="${nC ? nC + ' Kommentar' + (nC > 1 ? 'e' : '') : 'Kommentieren'}">${chatSvg}${nC ? `<b>${nC}</b>` : ''}</button>
       </div>
     </div>
   </div>`;
 }
 
 // Offen → (Annehmen) → In Bearbeitung → (Fertig) → Erledigt
+// Annehmen: nur wenn die Aufgabe frei ist oder für mich. Fertig: nur wer sie angenommen hat.
+const canTake = t => t.status === 'open' && (!t.assignee || t.assignee === me);
+const canFinish = t => t.status === 'doing' && t.assignee === me;
 function actionBtn(t) {
-  if (t.status === 'open') return `<button class="act take" data-advance="${t.id}">🙋 Annehmen</button>`;
-  if (t.status === 'doing') return `<button class="act finish" data-advance="${t.id}">✓ Fertig</button>`;
+  if (canTake(t)) return `<button class="act take" data-advance="${t.id}">🙋 Annehmen</button>`;
+  if (canFinish(t)) return `<button class="act finish" data-advance="${t.id}">✓ Fertig</button>`;
   return '';
 }
 function statusPill(t) {
   if (t.status === 'doing') return `<span class="pill doing"><i></i>In Bearbeitung · ${esc(t.assignee || '?')}</span>`;
   if (t.status === 'done') return `<span class="pill donep">✅ Erledigt von ${esc(t.doneBy || t.assignee || '?')}</span>`;
-  return t.assignee ? `<span class="pill">📌 für</span>${personPill(t.assignee)}` : '<span class="pill">🙋 noch frei</span>';
+  return t.assignee ? `<span class="pill person" data-p="${esc(t.assignee)}">${avatar(t.assignee)}für ${esc(t.assignee)}</span>` : '<span class="pill">🙋 noch frei</span>';
 }
 
 function renderLogin() {
@@ -442,10 +520,10 @@ function renderLogin() {
 /* ===================== Aktionen ===================== */
 function advance(id) {
   const t = findTask(data, id); if (!t) return;
-  if (t.status === 'open') {
+  if (canTake(t)) {
     mutate(d => { const x = findTask(d, id); if (x) { x.status = 'doing'; x.assignee = me; x.startedAt = Date.now(); } }, `hat „${t.title}“ angenommen 🛠`);
     toast('Angenommen – die anderen sehen jetzt „In Bearbeitung“ 🛠');
-  } else if (t.status === 'doing') {
+  } else if (canFinish(t)) {
     confetti();
     mutate(d => { const x = findTask(d, id); if (x) { x.status = 'done'; x.doneBy = me; x.doneAt = Date.now(); } }, `hat „${t.title}“ erledigt ✅`);
     toast('Erledigt! 🎉');
@@ -510,12 +588,17 @@ function openEditor(task, presetAssignee) {
   setTimeout(() => $('#f-title').focus(), 60);
 }
 
-function openDetail(id) { openDetailId = id; renderDetail(false); }
+let lastDetailSig = null;
+function openDetail(id) { openDetailId = id; lastDetailSig = null; renderDetail(false); }
 
 function renderDetail(isRefresh) {
   const t = findTask(data, openDetailId);
   if (!t) { closeModal(); return; }
   if (isRefresh && (document.activeElement?.id === 'c-text' || $('#editor'))) return;
+  const sig = JSON.stringify([t, me, Object.keys(PHOTOS)]);
+  if (isRefresh && sig === lastDetailSig) return;
+  lastDetailSig = sig;
+  const scrollY = $('.overlay')?.scrollTop || 0;
   const due = dueInfo(t);
   const isDone = t.status === 'done';
   $('#modalRoot').innerHTML = `
@@ -526,7 +609,7 @@ function renderDetail(isRefresh) {
         <div class="info">
           ${statusPill(t)}
           ${prioPill(t.prio)}
-          ${due ? `<span class="pill ${due.cls}">📅 ${esc(due.text)} (${new Date(t.due).toLocaleDateString('de-DE')})</span>` : ''}
+          ${due ? `<span class="pill due ${due.cls}">${calSvg}${esc(due.text)}</span>` : ''}
         </div>
         <div class="field"><label>Beschreibung</label><div class="desc ${t.desc ? '' : 'none'}">${t.desc ? esc(t.desc) : 'Keine Beschreibung'}</div></div>
         <div class="field"><label>Kommentare</label>
@@ -538,10 +621,11 @@ function renderDetail(isRefresh) {
       <div class="modal-foot">
         <button class="btn btn-link" id="d-del">🗑 Löschen</button>
         <button class="btn" id="d-edit">✏️ Bearbeiten</button>
-        ${isDone ? '<button class="btn" id="d-reopen">↩︎ Wieder öffnen</button>' : actionBtn(t).replace('class="act', 'id="d-adv" class="act')}
+        ${isDone && (t.doneBy === me || t.createdBy === me) ? '<button class="btn" id="d-reopen">↩︎ Wieder öffnen</button>' : actionBtn(t).replace('class="act', 'id="d-adv" class="act')}
       </div>
     </div>
   </div>`;
+  if (isRefresh) { const o = $('.overlay'); o.style.animation = 'none'; $('.modal').style.animation = 'none'; o.scrollTop = scrollY; }
 
   $('#d-reopen')?.addEventListener('click', () => { closeModal(); reopen(t.id); });
   $('#d-adv')?.addEventListener('click', e => { e.stopPropagation(); closeModal(); advance(t.id); });
@@ -580,12 +664,22 @@ document.addEventListener('click', e => {
   const login = el.closest('[data-login]');
   if (login) { me = login.dataset.login; save('todo.me', me); render(); return; }
   if (el.closest('[data-closebtn]') || el.matches('[data-close]')) { closeModal(); return; }
+  const go = el.closest('[data-go]'); if (go) { goTo(go.dataset.go); return; }
   const nf = el.closest('[data-newfor]'); if (nf) { openEditor(null, nf.dataset.newfor); return; }
+  const cm = el.closest('[data-comments]'); if (cm) { openDetail(cm.dataset.comments); setTimeout(() => { const i = $('#c-text'); if (i) { i.scrollIntoView({ block: 'center', behavior: 'smooth' }); i.focus({ preventScroll: true }); } }, 80); return; }
   const adv = el.closest('[data-advance]'); if (adv && !adv.id) { advance(adv.dataset.advance); return; }
   const tb = el.closest('[data-tab]'); if (tb) { tab = tb.dataset.tab; save('todo.tab', tab); render(); return; }
   const card = el.closest('.task[data-id]'); if (card) { openDetail(card.dataset.id); return; }
 });
 $('#fab').onclick = () => openEditor();
+// Zurück-Taste im Browser/Handy führt aufs Dashboard
+function goTo(v) {
+  if (v === view) return;
+  if (v === 'todo') history.pushState({ view: 'todo' }, '');
+  else if (history.state?.view === 'todo') { history.back(); return; }
+  view = v; closeModal(); render(); scrollTo(0, 0);
+}
+addEventListener('popstate', () => { view = history.state?.view || 'dash'; closeModal(); render(); });
 $('#meBtn').onclick = () => { me = null; save('todo.me', null); render(); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
@@ -594,6 +688,11 @@ if (!STORE_KEY) { $('#locked').classList.remove('hidden'); throw new Error('kein
 normalize(data);
 render();
 pull();
+// Profilbilder einmal pro Besuch laden
+fetch(STORE_URL + '-fotos?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(txt => {
+  if (!txt.trim()) return;
+  PHOTOS = JSON.parse(txt); save('todo.photos', PHOTOS); render();
+}).catch(() => {});
 setInterval(() => { if (!document.hidden) pull(); }, POLL_MS);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); });
 setInterval(() => { if (!$('#modalRoot').innerHTML) render(); }, 60000);
