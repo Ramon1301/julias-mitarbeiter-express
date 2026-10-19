@@ -108,16 +108,23 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .cal-head h3{margin:0;font-size:18px;font-weight:800;flex:1}
 .cal-nav{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);display:flex;align-items:center;justify-content:center}
 .cal-today{height:34px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--muted);font-weight:700;font-size:13px;padding:0 12px}
-.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-wds{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-wd{font-size:11px;font-weight:700;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.06em;padding:4px 0 6px}
-.cal-day{position:relative;min-height:92px;border-radius:12px;background:var(--bg);border:1px solid transparent;padding:6px;text-align:left;display:flex;flex-direction:column;gap:3px;overflow:hidden;color:var(--text)}
-.cal-day.out{opacity:.35}
-.cal-day .n{font-size:12px;font-weight:700;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.cal-weeks{display:flex;flex-direction:column;gap:4px}
+/* Eine Woche = Raster aus 7 Spalten. Tage liegen hinten, Terminbalken darüber und dürfen mehrere Spalten überspannen */
+.cal-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));column-gap:4px;row-gap:3px;grid-auto-rows:20px;position:relative}
+.cal-day{grid-row:1 / -1;border-radius:12px;background:var(--bg);border:1px solid transparent;padding:4px 6px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;color:var(--text);min-height:100%}
+.cal-day.out{opacity:.4}
+.cal-day .n{font-size:12px;font-weight:700;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .cal-day.today .n{background:var(--text);color:var(--bg)}
-.cal-day.sel{border-color:#c084fc}
-.cal-ev{position:relative;z-index:1;font-size:11px;font-weight:600;line-height:1.25;padding:2px 5px;border-radius:5px;background:color-mix(in srgb,var(--c) 18%,var(--bg));color:var(--c);border-left:3px solid var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-more{font-size:11px;color:var(--muted);padding-left:4px}
-.cal-corner{position:absolute;right:0;bottom:0;width:60%;aspect-ratio:1;max-width:56px;clip-path:polygon(100% 0,100% 100%,0 100%);border-bottom-right-radius:11px;pointer-events:none}
+.cal-day.sel{border-color:#c084fc;background:color-mix(in srgb,#c084fc 6%,var(--bg))}
+.cal-more{font-size:11px;font-weight:700;color:var(--muted);align-self:flex-end;line-height:1}
+.cal-bar{position:relative;z-index:1;margin:0 2px;border:0;border-radius:6px;padding:0 7px;height:20px;display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:#0c0a1d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;min-width:0}
+.cal-bar span{overflow:hidden;text-overflow:ellipsis}
+.cal-bar small{font-weight:800;opacity:.7;font-size:10.5px;flex:none}
+.cal-bar.cl{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:0}   /* geht in der Vorwoche weiter */
+.cal-bar.cr{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:0} /* geht in der nächsten Woche weiter */
+.cal-bar:hover{filter:brightness(1.08)}
 .evs{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
 .ev{display:flex;gap:14px;align-items:stretch;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;cursor:pointer;text-align:left;width:100%;color:var(--text)}
 .ev .ev-bar{width:4px;border-radius:4px;background:linear-gradient(180deg,var(--c),var(--c2));flex:none}
@@ -133,9 +140,19 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .day-title{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}
 .day-title h4{margin:0;font-size:16px;font-weight:800}
 .empty-s{color:var(--muted);font-size:14px;padding:14px;border:1px dashed var(--border);border-radius:14px;text-align:center}
-.time-row{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:10px}
 .tp{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:11px 13px;text-align:left;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
 .tp.unset{color:var(--muted);font-weight:500}
+.ev-when{background:var(--bg);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.ev-when-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 8px 8px 14px;min-height:52px}
+.ev-when-row+.ev-when-row{border-top:1px solid var(--border)}
+.ev-when-row>span{font-weight:600}
+.ev-when-btns{display:flex;gap:6px;min-width:0}
+.ev-when .tp{width:auto;background:var(--surface-2);border-color:transparent;padding:8px 12px;border-radius:10px}
+.ev-when .tp.time{min-width:68px;text-align:center}
+.switch{width:50px;height:30px;border-radius:999px;border:0;background:var(--surface-2);position:relative;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.switch.on{background:var(--grad)}
+.switch.on::after{transform:translateX(20px)}
 .tp.date{display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden}
 .tp.date span{overflow:hidden;text-overflow:ellipsis}
 .tp.date svg{opacity:.6;flex:none}
@@ -166,13 +183,14 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .colon{position:relative;font-size:22px;font-weight:800}
 .loc-link{color:var(--text);text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:3px}
 @media (max-width:640px){
-  .cal{padding:10px}
-  .cal-grid{gap:2px}
-  .cal-day{min-height:52px;align-items:center;padding:4px 2px}
-  .cal-ev,.cal-more{display:none}
-    .cal-day{padding-bottom:8px}
-  .time-row{grid-template-columns:1fr 1fr}
-  .time-row .field:first-child{grid-column:1/-1}
+  .cal{padding:8px}
+  .cal-wds,.cal-weeks{gap:2px}
+  .cal-week{column-gap:2px;row-gap:2px;grid-auto-rows:16px}
+  .cal-day{padding:3px 2px;align-items:center;border-radius:9px}
+  .cal-day .n{font-size:11px;width:20px;height:20px}
+  .cal-bar{height:16px;font-size:9.5px;padding:0 4px;border-radius:4px;margin:0 1px;pointer-events:none} /* aufs Handy: Tippen wählt den Tag */
+  .cal-bar small{display:none}
+  .cal-more{font-size:9.5px;align-self:center}
 }
 
 /* Personen = Aufgabe anlegen */
@@ -417,7 +435,10 @@ function setSync(s) { syncState = s; const d = document.querySelector('.sync-dot
 function normalize(d) {
   d.tasks ||= []; d.activity ||= []; d.events ||= []; d.rev ||= 0;
   // Teilnehmer eines Termins (ältere Termine: nur wer ihn eingetragen hat)
-  d.events.forEach(e => { if (!Array.isArray(e.people) || !e.people.length) e.people = [e.createdBy]; });
+  d.events.forEach(e => {
+    if (!Array.isArray(e.people) || !e.people.length) e.people = [e.createdBy];
+    if (!e.endDate || e.endDate < e.date) e.endDate = e.date; // mehrtägige Termine: letzter Tag
+  });
   d.tasks.forEach(t => {
     if (t.prio > 3) t.prio = 3;
     // ältere Aufgaben hatten nur eine Person (assignee) → Liste daraus machen
@@ -785,11 +806,19 @@ const todayStr = () => ymd(new Date());
 let calMonth = new Date(); calMonth.setDate(1);
 let calSel = todayStr();
 const nowHM = () => new Date().toTimeString().slice(0, 5);
-const isUpcoming = e => e.date > todayStr() || (e.date === todayStr() && (!e.start || (e.end || e.start) >= nowHM()));
+const isUpcoming = e => e.endDate > todayStr() || (e.endDate === todayStr() && (!e.start || (e.end || (e.endDate === e.date ? e.start : '23:59')) >= nowHM()));
+const multiDay = e => e.endDate > e.date;
 const evSort = (a, b) => (a.date + (a.start || '00:00')).localeCompare(b.date + (b.start || '00:00'));
-const eventsOn = day => data.events.filter(e => e.date === day).sort(evSort);
+const eventsOn = day => data.events.filter(e => e.date <= day && day <= e.endDate).sort(evSort);
 const fmtDay = (day, opts = { weekday: 'long', day: 'numeric', month: 'long' }) => new Date(day + 'T12:00:00').toLocaleDateString('de-DE', opts);
 const timeText = e => e.start ? (e.end ? `${e.start}–${e.end}` : e.start) : 'Ganztägig';
+// Zeitraum wie im Apple-Kalender: „Sa., 25. Okt., 22:00 – So., 26. Okt., 04:00“
+const shortDay = d => fmtDay(d, { weekday: 'short', day: 'numeric', month: 'short' });
+function rangeText(e) {
+  if (!multiDay(e)) return `${fmtDay(e.date)} · ${timeText(e)}`;
+  if (!e.start) return `${shortDay(e.date)} – ${shortDay(e.endDate)} · ganztägig`;
+  return `${shortDay(e.date)}, ${e.start} – ${shortDay(e.endDate)}${e.end ? ', ' + e.end : ''}`;
+}
 const pinSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
 
 function calTile() {
@@ -800,7 +829,7 @@ function calTile() {
   const rows = PEOPLE.map(p => {
     const n = data.events.filter(e => isUpcoming(e) && e.people.includes(p)).sort(evSort)[0];
     return `<div class="pnext" data-p="${p}">${avatar(p)}<b>${p}</b>${n
-      ? `<span class="what">${esc(n.title)}</span><span class="when">${dayLabel(n.date)}${n.start ? ', ' + n.start : ''}</span>`
+      ? `<span class="what">${esc(n.title)}</span><span class="when">${n.date < t ? 'bis ' + dayLabel(n.endDate) : dayLabel(n.date) + (n.start ? ', ' + n.start : '')}</span>`
       : '<span class="none">keine Termine</span>'}</div>`;
   }).join('');
   return `<button class="tile" data-go="cal">
@@ -814,40 +843,56 @@ function calTile() {
 // Strich vor dem Termin: pro Teilnehmer ein gleich langes Stück in seiner Farbe
 const stripes = list => list.length === 1 ? pVar(list[0])
   : `linear-gradient(180deg,${list.map((p, i) => `${pVar(p)} ${i * 100 / list.length}% ${(i + 1) * 100 / list.length}%`).join(',')})`;
-function evRow(e, showDate) {
+// Zeit-Spalte in der Tagesliste – bei mehrtägigen Terminen je nach Tag
+function dayTime(e, day) {
+  if (!multiDay(e)) return `${esc(e.start || 'Ganztägig')}${e.end ? `<small>bis ${esc(e.end)}</small>` : ''}`;
+  if (day === e.date) return `${esc(e.start || 'Ganztägig')}<small>bis ${esc(shortDay(e.endDate))}</small>`;
+  if (day === e.endDate && e.end) return `bis ${esc(e.end)}`;
+  return 'Ganztägig';
+}
+function evRow(e, day) {
   return `<button class="ev" data-ev="${e.id}" data-p="${esc(e.createdBy)}">
     <span class="ev-bar" style="background:${stripes(e.people)}"></span>
-    <span class="time">${showDate ? `${fmtDay(e.date, { day: 'numeric', month: 'short' })}<small>${esc(timeText(e))}</small>` : `${esc(e.start || 'Ganzt.')}${e.end ? `<small>bis ${esc(e.end)}</small>` : ''}`}</span>
+    <span class="time">${dayTime(e, day)}</span>
     <span class="what"><b>${esc(e.title)}</b>${e.location ? `<span>${pinSvg}${esc(e.location)}</span>` : ''}</span>
     <span class="who stack">${e.people.map(avatar).join('')}</span>
   </button>`;
 }
 
-// farbige Ecke unten rechts: alle Personen, die an diesem Tag einen Termin haben
-function cornerFor(evs) {
-  const ppl = PEOPLE.filter(p => evs.some(e => e.people.includes(p)));
-  if (!ppl.length) return '';
-  // klare Farbstreifen (kein Verlauf) vom Rand der Ecke bis zur Spitze
-  const step = 50 / ppl.length;
-  const bg = ppl.length === 1 ? pVar(ppl[0]) : `linear-gradient(135deg,transparent 50%,${ppl.map((p, i) => `${pVar(p)} ${50 + i * step}% ${50 + (i + 1) * step}%`).join(',')})`;
-  return `<span class="cal-corner" style="background:${bg}"></span>`;
-}
+// Balkenfarbe: eine Person = ihre Farbe; mehrere = klare Streifen übereinander (kein Verlauf)
+const barBg = list => list.length === 1 ? pVar(list[0])
+  : `linear-gradient(180deg,${list.map((p, i) => `${pVar(p)} ${i * 100 / list.length}% ${(i + 1) * 100 / list.length}%`).join(',')})`;
+
 function renderCal() {
   const y = calMonth.getFullYear(), m = calMonth.getMonth();
   const first = new Date(y, m, 1);
   const start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7)); // Woche beginnt Montag
   const t = todayStr();
-  let cells = '';
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(start); d.setDate(start.getDate() + i);
-    if (i === 35 && d.getMonth() !== m) break; // 5 Wochen reichen
-    const day = ymd(d), evs = eventsOn(day);
-    cells += `<button class="cal-day ${d.getMonth() !== m ? 'out' : ''} ${day === t ? 'today' : ''} ${day === calSel ? 'sel' : ''}" data-day="${day}">
-      <span class="n">${d.getDate()}</span>
-      ${evs.slice(0, 3).map(e => `<span class="cal-ev" data-p="${esc(e.createdBy)}">${e.start ? esc(e.start) + ' ' : ''}${esc(e.title)}</span>`).join('')}
-      ${evs.length > 3 ? `<span class="cal-more">+${evs.length - 3} weitere</span>` : ''}
-      ${cornerFor(evs)}
-    </button>`;
+  const LANES = matchMedia('(max-width:640px)').matches ? 2 : 3; // so viele Balken pro Tag, Rest als „+n“
+  let weeks = '';
+  for (let w = 0; w < 6; w++) {
+    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + w * 7 + i); return d; });
+    if (w === 5 && days[0].getMonth() !== m) break; // 5 Wochen reichen
+    const keys = days.map(ymd), wkStart = keys[0], wkEnd = keys[6];
+    // Termine dieser Woche: früher Beginn und längere Termine zuerst, damit Balken sauber übereinander liegen
+    const evs = data.events.filter(e => e.date <= wkEnd && e.endDate >= wkStart)
+      .sort((a, b) => a.date.localeCompare(b.date) || b.endDate.localeCompare(a.endDate) || (a.start || '').localeCompare(b.start || ''));
+    const laneEnd = [], more = Array(7).fill(0), bars = [];
+    for (const e of evs) {
+      const c1 = Math.max(0, keys.indexOf(e.date) === -1 ? 0 : keys.indexOf(e.date));
+      const c2 = keys.indexOf(e.endDate) === -1 ? 6 : keys.indexOf(e.endDate);
+      let lane = laneEnd.findIndex(end => end < c1);
+      if (lane === -1) lane = laneEnd.length;
+      if (lane >= LANES) { for (let c = c1; c <= c2; c++) more[c]++; continue; }
+      laneEnd[lane] = c2;
+      const cl = e.date < wkStart, cr = e.endDate > wkEnd;
+      bars.push(`<button class="cal-bar ${cl ? 'cl' : ''} ${cr ? 'cr' : ''}" data-ev="${e.id}" title="${esc(e.title)}"
+        style="grid-column:${c1 + 1} / ${c2 + 2};grid-row:${lane + 2};background:${barBg(e.people)}">${e.start && !cl ? `<small>${esc(e.start)}</small>` : ''}<span>${esc(e.title)}</span></button>`);
+    }
+    const cells = days.map((d, i) => `<button class="cal-day ${d.getMonth() !== m ? 'out' : ''} ${keys[i] === t ? 'today' : ''} ${keys[i] === calSel ? 'sel' : ''}" data-day="${keys[i]}" style="grid-column:${i + 1}">
+        <span class="n">${d.getDate()}</span>${more[i] ? `<span class="cal-more">+${more[i]}</span>` : ''}</button>`).join('');
+    // Zeilen: Datum, Balken-Spuren, Platz für „+n“
+    weeks += `<div class="cal-week" style="grid-template-rows:${LANES === 2 ? '22px repeat(2,16px) 12px' : '26px repeat(3,20px) 14px'}">${cells}${bars.join('')}</div>`;
   }
   $('#cal').innerHTML = `
     <div class="cal-head">
@@ -856,12 +901,13 @@ function renderCal() {
       <button class="cal-nav" data-calnav="-1" aria-label="Vorheriger Monat">‹</button>
       <button class="cal-nav" data-calnav="1" aria-label="Nächster Monat">›</button>
     </div>
-    <div class="cal-grid">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(w => `<div class="cal-wd">${w}</div>`).join('')}${cells}</div>`;
+    <div class="cal-wds">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(w => `<div class="cal-wd">${w}</div>`).join('')}</div>
+    <div class="cal-weeks">${weeks}</div>`;
 
   const dayEvs = eventsOn(calSel);
   $('#dayList').innerHTML = `
     <div class="day-title"><h4>${calSel === t ? 'Heute, ' : ''}${fmtDay(calSel)}</h4><button class="btn btn-primary" data-newev style="padding:9px 16px;font-size:14px">＋ Termin</button></div>
-    <div class="evs">${dayEvs.length ? dayEvs.map(e => evRow(e)).join('') : '<div class="empty-s">Keine Termine an diesem Tag</div>'}</div>`;
+    <div class="evs">${dayEvs.length ? dayEvs.map(e => evRow(e, calSel)).join('') : '<div class="empty-s">Keine Termine an diesem Tag</div>'}</div>`;
 
 }
 
@@ -946,18 +992,18 @@ function openTimePicker(title, value, onDone, clearLabel) {
 
 function openEventEditor(ev) {
   const isNew = !ev;
-  const e = ev ? { ...ev, people: [...ev.people] } : { title: '', date: calSel, start: '', end: '', location: '', note: '', people: [me] };
+  const e = ev ? { ...ev, people: [...ev.people] } : { title: '', date: calSel, endDate: calSel, start: '', end: '', location: '', note: '', people: [me] };
   $('#modalRoot').innerHTML = `
   <div class="overlay" data-close>
     <form class="modal" id="evEditor" autocomplete="off">
       <div class="modal-head"><h3>${isNew ? 'Neuer Termin' : 'Termin bearbeiten'}</h3><button type="button" class="x-btn" data-closebtn aria-label="Schließen">${xSvg}</button></div>
       <div class="modal-body">
         <div class="field"><label for="e-title">Name des Termins</label><input id="e-title" required maxlength="120" placeholder="z. B. Teammeeting" value="${esc(e.title)}"></div>
-        <div class="time-row">
-          <div class="field"><label>Datum</label><button type="button" class="tp date" id="e-date">${calSvg}<span></span></button></div>
-          <div class="field"><label>Von</label><button type="button" class="tp" data-tp="start"></button></div>
-          <div class="field"><label>Bis</label><button type="button" class="tp" data-tp="end"></button></div>
-        </div>
+        <div class="field"><label>Wann?</label><div class="ev-when">
+          <div class="ev-when-row"><span>Ganztägig</span><button type="button" class="switch" id="e-allday" aria-label="Ganztägig"></button></div>
+          <div class="ev-when-row"><span>Beginn</span><div class="ev-when-btns"><button type="button" class="tp date" id="e-d1">${calSvg}<span></span></button><button type="button" class="tp time" id="e-t1"></button></div></div>
+          <div class="ev-when-row"><span>Ende</span><div class="ev-when-btns"><button type="button" class="tp date" id="e-d2">${calSvg}<span></span></button><button type="button" class="tp time" id="e-t2"></button></div></div>
+        </div></div>
         <div class="field"><label for="e-loc">Ort</label><input id="e-loc" maxlength="160" placeholder="z. B. Laden, Hauptstraße 12" value="${esc(e.location)}"></div>
         <div class="field"><label for="e-note">Notiz <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></label><textarea id="e-note" style="min-height:70px" placeholder="Was sollte man wissen?">${esc(e.note)}</textarea></div>
         <div class="field"><label>Wer nimmt teil? <span style="text-transform:none;letter-spacing:0;font-weight:500">(auch mehrere möglich)</span></label><div class="pick" id="e-who">
@@ -967,25 +1013,41 @@ function openEventEditor(ev) {
       <div class="modal-foot"><button type="submit" class="btn btn-primary">${isNew ? 'Termin eintragen' : 'Speichern'}</button></div>
     </form>
   </div>`;
-  const drawDate = () => $('#e-date span').textContent = dateLabel(e.date);
-  drawDate();
-  $('#e-date').onclick = () => openDatePicker('Datum', e.date, v => { e.date = v; drawDate(); });
-  // Uhrzeit-Knöpfe
-  const drawTimes = () => document.querySelectorAll('#evEditor .tp[data-tp]').forEach(b => {
-    const v = e[b.dataset.tp]; b.textContent = v || (b.dataset.tp === 'start' ? 'Ganztägig' : '–'); b.classList.toggle('unset', !v);
-  });
-  drawTimes();
-  document.querySelectorAll('#evEditor .tp[data-tp]').forEach(b => b.onclick = () => {
-    const key = b.dataset.tp;
-    const fallback = key === 'end' ? addMin(e.start || '09:00', 60) : roundNow();
-    openTimePicker(key === 'start' ? 'Beginn' : 'Ende', e[key] || fallback, v => {
-      e[key] = v;
-      if (key === 'start' && !v) e.end = '';
-      if (key === 'start' && v && e.end && e.end <= v) e.end = addMin(v, 60);
-      if (key === 'end' && v && !e.start) e.start = addMin(v, -60);
-      drawTimes();
-    }, key === 'start' ? 'Ganztägig' : 'Kein Ende');
-  });
+  // Beginn/Ende wie im Apple-Kalender (auch über mehrere Tage)
+  const dayDiff = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
+  const shiftDay = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return ymd(x); };
+  const fix = () => { // Ende darf nie vor dem Beginn liegen
+    if (e.endDate < e.date) e.endDate = e.date;
+    if (e.start && e.end && e.endDate === e.date && e.end <= e.start) {
+      const later = addMin(e.start, 60);
+      if (later > e.start) e.end = later;
+      else { e.endDate = shiftDay(e.date, 1); e.end = '00:55'; } // Beginn kurz vor Mitternacht
+    }
+  };
+  const drawWhen = () => {
+    const allDay = !e.start;
+    $('#e-allday').classList.toggle('on', allDay);
+    $('#e-allday').setAttribute('aria-pressed', allDay);
+    $('#e-d1 span').textContent = dateLabel(e.date);
+    $('#e-d2 span').textContent = dateLabel(e.endDate);
+    $('#e-t1').textContent = e.start; $('#e-t2').textContent = e.end || '–';
+    $('#e-t1').classList.toggle('hidden', allDay); $('#e-t2').classList.toggle('hidden', allDay);
+  };
+  drawWhen();
+  $('#e-allday').onclick = () => {
+    if (e.start) { e.start = ''; e.end = ''; }
+    else { e.start = roundNow(); e.end = addMin(e.start, 60); fix(); }
+    drawWhen();
+  };
+  $('#e-d1').onclick = () => openDatePicker('Beginn', e.date, v => { const n = dayDiff(e.date, v); e.date = v; e.endDate = shiftDay(e.endDate, n); fix(); drawWhen(); });
+  $('#e-d2').onclick = () => openDatePicker('Ende', e.endDate, v => { e.endDate = v < e.date ? e.date : v; fix(); drawWhen(); });
+  $('#e-t1').onclick = () => openTimePicker('Beginn', e.start, v => { if (!v) { e.start = ''; e.end = ''; } else { e.start = v; fix(); } drawWhen(); }, 'Ganztägig');
+  $('#e-t2').onclick = () => openTimePicker('Ende', e.end || addMin(e.start, 60), v => {
+    e.end = v;
+    // Ende vor dem Beginn am selben Tag → über Nacht, also nächster Tag
+    if (v && e.endDate === e.date && v <= e.start) e.endDate = shiftDay(e.date, 1);
+    drawWhen();
+  }, 'Kein Ende');
   $('#e-who').onclick = x => {
     const b = x.target.closest('button'); if (!b) return;
     const p = b.dataset.who;
@@ -996,7 +1058,8 @@ function openEventEditor(ev) {
   };
   $('#evEditor').onsubmit = ev2 => {
     ev2.preventDefault();
-    const patch = { title: $('#e-title').value.trim(), date: e.date, start: e.start, end: e.end, location: $('#e-loc').value.trim(), note: $('#e-note').value.trim(), people: e.people };
+    fix();
+    const patch = { title: $('#e-title').value.trim(), date: e.date, endDate: e.endDate, start: e.start, end: e.end, location: $('#e-loc').value.trim(), note: $('#e-note').value.trim(), people: e.people };
     if (!patch.title || !patch.date) return;
     if (patch.end && !patch.start) patch.end = '';
     calSel = patch.date; calMonth = new Date(patch.date + 'T12:00:00'); calMonth.setDate(1);
@@ -1022,7 +1085,7 @@ function openEvent(id) {
       <div class="modal-head"><h3>${esc(e.title)}</h3><button class="x-btn" data-closebtn aria-label="Schließen">${xSvg}</button></div>
       <div class="modal-body">
         <div class="kv-list" style="display:flex;flex-direction:column;gap:10px;font-size:15px">
-          <div style="display:flex;gap:10px;align-items:center">${calSvg}<span>${fmtDay(e.date)} · ${esc(timeText(e))}</span></div>
+          <div style="display:flex;gap:10px;align-items:center">${calSvg}<span>${esc(rangeText(e))}</span></div>
           ${e.location ? `<div style="display:flex;gap:10px;align-items:center">${pinSvg}<a class="loc-link" href="${maps}" target="_blank" rel="noopener">${esc(e.location)}</a></div>` : ''}
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${forPill(e.people).replaceAll('für ', '')}</div>
           <div style="display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px">${avatar(e.createdBy)}<span>Eingetragen von <b style="color:var(--text)">${esc(e.createdBy)}</b></span></div>
@@ -1083,6 +1146,7 @@ function goTo(v) {
   else if (history.state?.view) { history.back(); return; }
   view = v; closeModal(); render(); scrollTo(0, 0);
 }
+let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (view === 'cal') renderCal(); }, 150); });
 addEventListener('popstate', () => { view = history.state?.view || 'dash'; closeModal(); render(); });
 $('#meBtn').onclick = () => { me = null; save('todo.me', null); render(); };
 document.addEventListener('keydown', e => {
