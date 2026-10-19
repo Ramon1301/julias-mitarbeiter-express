@@ -94,9 +94,17 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .task[data-prio="3"]:not(.done){background:linear-gradient(90deg,rgba(244,63,94,.12),var(--surface) 45%)}
 .task.done{opacity:.55}
 .task.done .t-title{text-decoration:line-through}
-.check{width:26px;height:26px;border-radius:50%;border:2px solid var(--pc);background:transparent;flex:none;display:flex;align-items:center;justify-content:center;color:transparent;margin-top:1px;transition:all .15s}
-.check:hover{background:color-mix(in srgb,var(--pc) 25%,transparent)}
-.check.on{background:var(--ok);border-color:var(--ok);color:#0c0a1d}
+.t-top{display:flex;gap:12px;align-items:flex-start}
+.t-top .t-title{flex:1;min-width:0}
+.act{border:0;border-radius:999px;padding:7px 14px;font-weight:800;font-size:13px;white-space:nowrap;flex:none;transition:transform .12s,filter .12s}
+.act:hover{transform:scale(1.05);filter:brightness(1.1)}
+.act.take{background:var(--grad);color:#fff;box-shadow:0 4px 14px -4px rgba(236,72,153,.6)}
+.act.finish{background:var(--ok);color:#0c0a1d;box-shadow:0 4px 14px -4px rgba(74,222,128,.6)}
+.task.doing{border-color:rgba(250,204,21,.45);box-shadow:0 0 0 1px rgba(250,204,21,.15),0 8px 24px -12px rgba(250,204,21,.5)}
+.pill.doing{background:rgba(250,204,21,.16);color:var(--p2)}
+.pill.doing i{width:7px;height:7px;border-radius:50%;background:var(--p2);animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+.pill.donep{background:rgba(74,222,128,.16);color:var(--ok)}
 .t-body{flex:1;min-width:0}
 .t-title{font-weight:700;font-size:16px;word-break:break-word}
 .t-desc{color:var(--muted);font-size:13.5px;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word}
@@ -269,7 +277,7 @@ function setSync(s) { syncState = s; const d = document.querySelector('.sync-dot
 
 function normalize(d) {
   d.tasks ||= []; d.activity ||= []; d.rev ||= 0;
-  d.tasks.forEach(t => { if (t.prio > 3) t.prio = 3; if (t.status === 'doing') t.status = 'open'; });
+  d.tasks.forEach(t => { if (t.prio > 3) t.prio = 3; });
   return d;
 }
 async function fetchRemote() {
@@ -316,7 +324,6 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const avatar = p => `<span class="avatar" data-p="${p ? esc(p) : 'none'}">${p ? esc(p[0]) : '?'}</span>`;
 const personPill = p => `<span class="pill person" data-p="${esc(p)}">${avatar(p)}${esc(p)}</span>`;
 const prioPill = n => `<span class="pill prio" style="--pc:var(--p${n})">${PRIOS[n].emo} ${PRIOS[n].label}</span>`;
-const checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
 const xSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 function dueInfo(t) {
@@ -398,20 +405,31 @@ function emptyState() {
 function taskCard(t) {
   const due = dueInfo(t);
   const nC = (t.comments || []).length;
-  return `<div class="task ${t.status === 'done' ? 'done' : ''}" data-prio="${t.prio}" data-id="${t.id}">
-    <button class="check ${t.status === 'done' ? 'on' : ''}" data-toggle="${t.id}" aria-label="Erledigt umschalten">${checkSvg}</button>
+  return `<div class="task ${t.status}" data-prio="${t.prio}" data-id="${t.id}">
     <div class="t-body">
-      <div class="t-title">${esc(t.title)}</div>
+      <div class="t-top"><div class="t-title">${esc(t.title)}</div>${actionBtn(t)}</div>
       ${t.desc ? `<div class="t-desc">${esc(t.desc)}</div>` : ''}
       <div class="t-meta">
+        ${statusPill(t)}
         ${prioPill(t.prio)}
-        ${t.assignee ? personPill(t.assignee) : '<span class="pill">🙋 noch frei</span>'}
         ${due ? `<span class="pill ${due.cls}">📅 ${esc(due.text)}</span>` : ''}
         ${nC ? `<span class="pill">💬 ${nC}</span>` : ''}
         <span class="by">von ${esc(t.createdBy)} · ${ago(t.createdAt)}</span>
       </div>
     </div>
   </div>`;
+}
+
+// Offen → (Annehmen) → In Bearbeitung → (Fertig) → Erledigt
+function actionBtn(t) {
+  if (t.status === 'open') return `<button class="act take" data-advance="${t.id}">🙋 Annehmen</button>`;
+  if (t.status === 'doing') return `<button class="act finish" data-advance="${t.id}">✓ Fertig</button>`;
+  return '';
+}
+function statusPill(t) {
+  if (t.status === 'doing') return `<span class="pill doing"><i></i>In Bearbeitung · ${esc(t.assignee || '?')}</span>`;
+  if (t.status === 'done') return `<span class="pill donep">✅ Erledigt von ${esc(t.doneBy || t.assignee || '?')}</span>`;
+  return t.assignee ? `<span class="pill">📌 für</span>${personPill(t.assignee)}` : '<span class="pill">🙋 noch frei</span>';
 }
 
 function renderLogin() {
@@ -422,12 +440,20 @@ function renderLogin() {
 }
 
 /* ===================== Aktionen ===================== */
-function toggleDone(id) {
+function advance(id) {
   const t = findTask(data, id); if (!t) return;
-  const nowDone = t.status !== 'done';
-  if (nowDone) confetti();
-  mutate(d => { const x = findTask(d, id); if (x) { x.status = nowDone ? 'done' : 'open'; x.doneAt = nowDone ? Date.now() : null; } },
-    nowDone ? `hat „${t.title}“ erledigt ✅` : `hat „${t.title}“ wieder geöffnet`);
+  if (t.status === 'open') {
+    mutate(d => { const x = findTask(d, id); if (x) { x.status = 'doing'; x.assignee = me; x.startedAt = Date.now(); } }, `hat „${t.title}“ angenommen 🛠`);
+    toast('Angenommen – die anderen sehen jetzt „In Bearbeitung“ 🛠');
+  } else if (t.status === 'doing') {
+    confetti();
+    mutate(d => { const x = findTask(d, id); if (x) { x.status = 'done'; x.doneBy = me; x.doneAt = Date.now(); } }, `hat „${t.title}“ erledigt ✅`);
+    toast('Erledigt! 🎉');
+  }
+}
+function reopen(id) {
+  const t = findTask(data, id); if (!t) return;
+  mutate(d => { const x = findTask(d, id); if (x) { x.status = 'open'; x.doneBy = null; x.doneAt = null; } }, `hat „${t.title}“ wieder geöffnet`);
 }
 
 /* ===================== Fenster ===================== */
@@ -498,10 +524,9 @@ function renderDetail(isRefresh) {
       <div class="modal-head"><h3>${esc(t.title)}</h3><button class="x-btn" data-closebtn aria-label="Schließen">${xSvg}</button></div>
       <div class="modal-body">
         <div class="info">
+          ${statusPill(t)}
           ${prioPill(t.prio)}
-          ${t.assignee ? personPill(t.assignee) : '<span class="pill">🙋 noch frei</span>'}
           ${due ? `<span class="pill ${due.cls}">📅 ${esc(due.text)} (${new Date(t.due).toLocaleDateString('de-DE')})</span>` : ''}
-          ${isDone ? '<span class="pill" style="color:var(--ok)">✅ erledigt</span>' : ''}
         </div>
         <div class="field"><label>Beschreibung</label><div class="desc ${t.desc ? '' : 'none'}">${t.desc ? esc(t.desc) : 'Keine Beschreibung'}</div></div>
         <div class="field"><label>Kommentare</label>
@@ -513,12 +538,13 @@ function renderDetail(isRefresh) {
       <div class="modal-foot">
         <button class="btn btn-link" id="d-del">🗑 Löschen</button>
         <button class="btn" id="d-edit">✏️ Bearbeiten</button>
-        <button class="btn ${isDone ? '' : 'btn-ok'}" id="d-done">${isDone ? '↩︎ Wieder öffnen' : '✓ Erledigt'}</button>
+        ${isDone ? '<button class="btn" id="d-reopen">↩︎ Wieder öffnen</button>' : actionBtn(t).replace('class="act', 'id="d-adv" class="act')}
       </div>
     </div>
   </div>`;
 
-  $('#d-done').onclick = () => { closeModal(); toggleDone(t.id); };
+  $('#d-reopen')?.addEventListener('click', () => { closeModal(); reopen(t.id); });
+  $('#d-adv')?.addEventListener('click', e => { e.stopPropagation(); closeModal(); advance(t.id); });
   $('#d-edit').onclick = () => { openDetailId = null; openEditor(t); };
   $('#d-del').onclick = () => {
     if (!confirm(`„${t.title}“ wirklich löschen?`)) return;
@@ -555,7 +581,7 @@ document.addEventListener('click', e => {
   if (login) { me = login.dataset.login; save('todo.me', me); render(); return; }
   if (el.closest('[data-closebtn]') || el.matches('[data-close]')) { closeModal(); return; }
   const nf = el.closest('[data-newfor]'); if (nf) { openEditor(null, nf.dataset.newfor); return; }
-  const tg = el.closest('[data-toggle]'); if (tg) { toggleDone(tg.dataset.toggle); return; }
+  const adv = el.closest('[data-advance]'); if (adv && !adv.id) { advance(adv.dataset.advance); return; }
   const tb = el.closest('[data-tab]'); if (tb) { tab = tb.dataset.tab; save('todo.tab', tab); render(); return; }
   const card = el.closest('.task[data-id]'); if (card) { openDetail(card.dataset.id); return; }
 });
