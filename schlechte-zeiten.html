@@ -24,7 +24,7 @@ canvas{display:block;width:100vw;height:100vh}
 const cv = document.getElementById('c'); let g = cv.getContext('2d');
 // Logische Spielfläche – im Hochformat schmal und hoch (füllt das Handy ganz aus), sonst breit.
 let VW = 1000, VH = 620, PORTRAIT = false, STAGE_Y = 520, PULT_X = 500, SCALE = .9, BANNER_Y = 104, TY = 0;
-let TRAY = [], BTN_BACK, BTN_SCORE, BTN_MUTE, PICK, BTN_SWITCH, JO = null;
+let TRAY = [], BTN_HOME, BTN_BACK, BTN_SCORE, BTN_MUTE, PICK, BTN_SWITCH, JO = null;
 const CROUCH = 78;
 let S = 1, OX = 0, OY = 0, DPR = 1;
 function fit() {
@@ -33,14 +33,14 @@ function fit() {
   PORTRAIT = false;   // immer das klassische Querformat-Layout – im Hochformat wird es einfach kleiner angezeigt (ohne Dreh-Aufforderung)
   VW = PORTRAIT ? 620 : 1000;
   VH = PORTRAIT ? Math.round(Math.min(1400, Math.max(900, 620 * innerHeight / innerWidth))) : 620;
-  STAGE_Y = VH - (PORTRAIT ? 170 : 100); PULT_X = VW / 2; SCALE = PORTRAIT ? 1.18 : .9;
+  STAGE_Y = VH - (PORTRAIT ? 170 : 100); PULT_X = VW / 2; SCALE = PORTRAIT ? 1.18 : .8;
   BANNER_Y = PORTRAIT ? 190 : 104; TY = PORTRAIT ? Math.round((VH - 620) / 2) : 0;
   S = Math.min(innerWidth / VW, innerHeight / VH);
   OX = (innerWidth - VW * S) / 2; OY = (innerHeight - VH * S) / 2;
   const tw = Math.min(VW - 32, PORTRAIT ? 588 : 520), th = PORTRAIT ? 120 : 96, tx0 = (VW - tw) / 2, ty0 = VH - th - (PORTRAIT ? 24 : 10);
   TRAY = [0, 1, 2, 3].map(i => ({ x: tx0 + tw / 4 * (i + .5), y: ty0 + th / 2, w: tw / 4, h: th, x0: tx0 + tw / 4 * i, y0: ty0 }));
   TRAY.box = { x: tx0, y: ty0, w: tw, h: th };
-  BTN_BACK = { x: 20, y: 18, w: 160, h: 50 }; BTN_SCORE = { x: VW - 236, y: 18, w: 170, h: 50 }; BTN_MUTE = { x: VW - 56, y: 18, w: 44, h: 50 };
+  BTN_BACK = { x: 20, y: 18, w: 160, h: 50 }; BTN_HOME = { x: 18, y: 18, w: 54, h: 54 }; BTN_SCORE = { x: VW - 252, y: 20, w: 170, h: 50 }; BTN_MUTE = { x: VW - 72, y: 18, w: 54, h: 54 };
   PICK = ['Julia', 'Joris', 'Ramon'].map((n, i) => ({ n, x: VW / 2 - 270 + i * 190, y: 372, w: 160, h: 64 }));   // y relativ zum Menü (+TY)
   BTN_SWITCH = { x: VW / 2 - 90, y: 560, w: 180, h: 36 };
   if (JO) { JO.y = STAGE_Y; JO.x = clamp(JO.x, VW * .15, VW * .85); JO.tx = clamp(JO.tx, VW * .15, VW * .85); }
@@ -76,9 +76,22 @@ function drawItem(key, x, y, r, rot = 0) {
     for (const dx of [-.45, 0, .45]) { g.fillStyle = '#fff8ee'; g.beginPath(); g.arc(dx * r, -r * .35, r * .22, 0, 7); g.fill(); g.stroke(); }
     g.fillStyle = '#e8402e'; g.beginPath(); g.arc(0, -r * .55, r * .16, 0, 7); g.fill(); g.stroke();
   } else {
-    g.fillStyle = '#3f9d4a'; g.beginPath(); g.ellipse(0, 0, r, r * .78, 0, 0, 7); g.fill(); g.stroke();
-    g.strokeStyle = '#2a6b33'; g.lineWidth = r * .1; for (const k of [-.5, 0, .5]) { g.beginPath(); g.ellipse(k * r * .7, 0, r * .12, r * .7, 0, 0, 7); g.stroke(); }
-    g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(-r * .4, -r * .4, r * .25, r * .12, -.5, 0, 7); g.fill();
+    // Wassermelone: hellgrün mit dunklen, gezackten Streifen, Glanzlicht und Stielansatz
+    const rx = r * 1.08, ry = r * .82;
+    g.save(); g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, 7); g.closePath();
+    const grd = g.createRadialGradient(-rx * .35, -ry * .4, r * .1, 0, 0, rx); grd.addColorStop(0, '#9be07a'); grd.addColorStop(1, '#4fa83c');
+    g.fillStyle = grd; g.fill(); g.clip();
+    g.fillStyle = '#23662c';
+    for (let k = -3; k <= 3; k++) {
+      const cx = k * rx * .3; g.beginPath(); g.moveTo(cx, -ry * 1.1);
+      for (let yy = -ry; yy <= ry; yy += ry / 5) g.lineTo(cx + (Math.round(yy / (ry / 5)) % 2 ? r * .1 : -r * .1) * (1 - Math.abs(k) * .12), yy);
+      g.lineTo(cx + r * .02, ry * 1.1); for (let yy = ry; yy >= -ry; yy -= ry / 5) g.lineTo(cx + r * .14 + (Math.round(yy / (ry / 5)) % 2 ? r * .1 : -r * .1) * (1 - Math.abs(k) * .12), yy);
+      g.closePath(); g.fill();
+    }
+    g.fillStyle = 'rgba(255,255,255,.32)'; g.beginPath(); g.ellipse(-rx * .42, -ry * .45, rx * .32, ry * .16, -.4, 0, 7); g.fill();
+    g.restore();
+    g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, 7); g.lineWidth = Math.max(2, r * .12); g.strokeStyle = OUT; g.stroke();
+    g.fillStyle = '#7a5a2e'; g.beginPath(); g.ellipse(-rx * .96, 0, r * .1, r * .16, 0, 0, 7); g.fill(); g.lineWidth = 2; g.stroke();
   }
   g.restore();
 }
@@ -306,12 +319,15 @@ async function loadPhotos() {
     for (const [n, src] of Object.entries(JSON.parse(t))) { const im = new Image(); im.src = src; photos[n] = im; } } catch {}
 }
 loadBoard(); loadPhotos();
+setInterval(() => { if (!document.hidden && state !== 'play') loadBoard(); }, 15000);   // Bestenliste aktuell halten
+document.addEventListener('visibilitychange', () => { if (!document.hidden) loadBoard(); });
 
 let state = 'title', time = 60, score = 0, combo = 0, best = store.get('best', 0), hits = 0, throws = 0;
 let sel = 0, cool = 0, projectiles = [], wallSplats = [], particles = [], floaters = [], bubble = null;
 const jo = { x: 300, tx: 300, y: STAGE_Y, walk: 0, duck: 0, duckT: 0, mood: 'smug', moodT: 0, hands: 'raute', handsT: 0, stains: [], speed: 90, bubbleT: 2 };
-const QUOTES = ['Neue Wege gehen!', 'Wir müssen reden!', 'Das ist Dialog!', 'Bitte sachlich bleiben!', 'Ich bin offen für Kritik!', 'Nächster Punkt!'];
-const HIT_QUOTES = ['Hey!', 'Meine Brille!', 'Mein Anzug!!', 'Das war neu!', 'Unsachlich!', 'Aua!', 'Nicht die Haare!'];
+const QUOTES = ['Neue Wege gehen!', 'Wir müssen reden!', 'Das ist Dialog!', 'Bitte sachlich bleiben!', 'Ich bin offen für Kritik!', 'Nächster Punkt!', 'Wir brauchen mehr Digitalisierung!', 'Das nehme ich mal mit!', 'Lasst uns das priorisieren!', 'Ich habe einen Plan!', 'Das klären wir im Ausschuss!', 'Mehr Mut zur Zukunft!'];
+const pickQuote = (list, last) => { let q; do q = list[Math.floor(Math.random() * list.length)]; while (q === last && list.length > 1); return q; };
+const HIT_QUOTES = ['Hey!', 'Meine Brille!', 'Mein Anzug!!', 'Das war neu!', 'Unsachlich!', 'Aua!', 'Nicht die Haare!', 'Mehr Digitalisierung!'];
                                          // Johanns Größe auf der Bühne
 
 function reset() {
@@ -347,6 +363,7 @@ cv.addEventListener('pointerdown', e => {
   if (inR(p, BTN_MUTE)) { muted = !muted; store.set('muted', muted); return; }
   if (state !== 'play' && inR(p, BTN_SCORE)) { boardOpen = true; loadBoard(); return; }
   if (state === 'title' && inR(p, BTN_BACK)) { location.href = 'index.html'; return; }
+  if (state !== 'title' && inR(p, BTN_HOME)) { location.href = 'index.html'; return; }
   if (state === 'title') {
     const pm = { x: p.x, y: p.y - TY };
     if (!me) { const k = PICK.find(b => inR(pm, b)); if (k) { me = k.n; try { localStorage.setItem('todo.me', JSON.stringify(me)); } catch {} } return; }
@@ -393,7 +410,7 @@ function update(dt) {
   jo.duck += ((jo.duckGoal || 0) - jo.duck) * Math.min(1, dt * 9);
   if ((jo.moodT -= dt) <= 0) jo.mood = combo >= 4 ? 'angry' : 'smug';
   if ((jo.handsT -= dt) <= 0) { jo.hands = Math.random() < .5 ? 'raute' : 'point'; jo.handsT = rand(1.5, 3.5); }
-  if ((jo.bubbleT -= dt) <= 0) { bubble = { text: QUOTES[Math.floor(Math.random() * QUOTES.length)], t: 2 }; jo.bubbleT = rand(4, 7); }
+  if ((jo.bubbleT -= dt) <= 0) { bubble = { text: pickQuote(QUOTES, bubble?.text), t: 2.2 }; jo.bubbleT = rand(3.5, 6); }
   if (bubble && (bubble.t -= dt) <= 0) bubble = null;
   // Würfe
   for (const p of projectiles) {
@@ -413,16 +430,16 @@ function update(dt) {
         // Spritzer klebt an Johann (in seinen lokalen Koordinaten)
         const s = SCALE, lx = (p.tx - jo.x) / s, ly = (p.ty - jo.y) / s - jo.duck * CROUCH;
         jo.stains.push(makeSplat(p.it.key, lx, ly, p.it.key === 'melon' ? 2.6 : p.it.key === 'pie' ? 2.1 : 1.5));
-        if (jo.stains.length > 40) jo.stains.shift();
+        if (jo.stains.length > 22) jo.stains.shift();
         jo.mood = 'hit'; jo.moodT = .5; jo.hands = 'up'; jo.handsT = .7;
-        if (Math.random() < .5) bubble = { text: HIT_QUOTES[Math.floor(Math.random() * HIT_QUOTES.length)], t: 1.2 };
+        if (Math.random() < .5) bubble = { text: pickQuote(HIT_QUOTES, bubble?.text), t: 1.2 };
         SFX.splat(p.it.key === 'melon' || p.it.key === 'pie'); SFX.oof();
         splash(p.tx, p.ty, p.it.key, 18);
         shakeT = p.it.key === 'melon' ? .25 : .1;
       } else {
         combo = 0;
         wallSplats.push(Object.assign(makeSplat(p.it.key, p.tx, p.ty, p.it.key === 'melon' ? 2.4 : 1.6), { a: 1 }));
-        if (wallSplats.length > 30) wallSplats.shift();
+        if (wallSplats.length > 16) wallSplats.shift();
         splash(p.tx, p.ty, p.it.key, 10); SFX.miss(); SFX.splat(false);
       }
     }
@@ -453,11 +470,14 @@ function render(now) {
   if (behindPult()) { drawJohann(jo.x, jo.y, SCALE, st); drawPult(); } else { drawPult(); drawJohann(jo.x, jo.y, SCALE, st); }
   // Sprechblase
   if (bubble && state !== 'title') {
-    const z = johannHitZones(), bx = clamp(jo.x + 120, 160, VW - 160), by = z.head.y - 110;
+    const z = johannHitZones();
     g.font = FONT(800, 26); const w = g.measureText(bubble.text).width + 40;
-    shape('#fff8ee', () => { g.roundRect(bx - w / 2, by - 30, w, 56, 18); }, 4);
-    shape('#fff8ee', () => { g.moveTo(bx - 40, by + 22); g.lineTo(jo.x + 40, z.head.y - 50); g.lineTo(bx - 10, by + 24); }, 4);
-    g.fillStyle = '#fff8ee'; g.fillRect(bx - 44, by + 18, 40, 8);
+    // wie in der ersten Version: rechts über dem Kopf, wandert mit Johann mit; kurzer Zipfel nach links unten zum Kopf
+    const bx = clamp(jo.x + 120, w / 2 + 12, VW - w / 2 - 12), by = Math.max(z.head.y - z.head.r - 34, 104);
+    const tx = clamp(jo.x + 30, bx - w / 2 + 26, bx + w / 2 - 40);
+    shape('#fff8ee', () => { g.moveTo(tx, by + 22); g.lineTo(tx - 14, by + 46); g.lineTo(tx + 22, by + 22); }, 4);
+    shape('#fff8ee', () => { g.roundRect(bx - w / 2, by - 30, w, 56, 20); }, 4);
+    g.fillStyle = '#fff8ee'; g.fillRect(tx + 2, by + 20, 18, 6);
     g.fillStyle = OUT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(bubble.text, bx, by);
   }
   // Würfe im Flug (Bogen + werden kleiner = fliegen in die Tiefe)
@@ -489,17 +509,22 @@ function avatarCircle(name, x, y, r) {
   g.restore();
 }
 function topButtons() {
+  if (state !== 'title') { shape('rgba(255,240,214,.92)', () => g.roundRect(BTN_HOME.x, BTN_HOME.y, BTN_HOME.w, BTN_HOME.h, 18), 3.5); label('←', BTN_HOME.x + 27, BTN_HOME.y + 27, 30, OUT, 'center', null); }
   if (state === 'title') { pill(BTN_BACK.x, BTN_BACK.y, BTN_BACK.w, BTN_BACK.h, 'rgba(255,240,214,.9)', 3.5); label('← Dashboard', BTN_BACK.x + BTN_BACK.w / 2, BTN_BACK.y + 27, 22, OUT, 'center', null); }
   if (state !== 'play') { pill(BTN_SCORE.x, BTN_SCORE.y, BTN_SCORE.w, BTN_SCORE.h, COL.gold); label('🏆 Highscore', BTN_SCORE.x + BTN_SCORE.w / 2, BTN_SCORE.y + 27, 24, OUT, 'center', null); }
-  pill(BTN_MUTE.x, BTN_MUTE.y, BTN_MUTE.w, BTN_MUTE.h, 'rgba(255,240,214,.9)', 3.5);
-  g.font = FONT(800, 24); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(muted ? '🔇' : '🔊', BTN_MUTE.x + 22, BTN_MUTE.y + 27);
+  shape('rgba(255,240,214,.92)', () => g.roundRect(BTN_MUTE.x, BTN_MUTE.y, BTN_MUTE.w, BTN_MUTE.h, 18), 3.5);
+  const mx = BTN_MUTE.x + 16, my = BTN_MUTE.y + 27;
+  g.fillStyle = OUT; g.beginPath(); g.moveTo(mx - 6, my - 6); g.lineTo(mx, my - 6); g.lineTo(mx + 9, my - 14); g.lineTo(mx + 9, my + 14); g.lineTo(mx, my + 6); g.lineTo(mx - 6, my + 6); g.closePath(); g.fill();
+  g.lineCap = 'round'; g.lineWidth = 3.5; g.strokeStyle = muted ? '#e0472f' : OUT;
+  if (muted) { g.beginPath(); g.moveTo(mx + 15, my - 7); g.lineTo(mx + 29, my + 7); g.moveTo(mx + 29, my - 7); g.lineTo(mx + 15, my + 7); g.stroke(); }
+  else { g.beginPath(); g.arc(mx + 10, my, 8, -.8, .8); g.stroke(); g.beginPath(); g.arc(mx + 10, my, 15, -.8, .8); g.stroke(); }
 }
 function hud() {
   if (state === 'play' || state === 'over') {
     // Punkte
-    pill(20, 18, 200, 54, '#ff8c6b');
-    if (me) avatarCircle(me, 50, 45, 18);
-    label(`${score}`, 140, 46, 36, '#fff');
+    pill(84, 18, 190, 54, '#ff8c6b');
+    if (me) avatarCircle(me, 114, 45, 18);
+    label(`${score}`, 200, 46, 36, '#fff');
     // Zeit als Balken-Uhr
     const tw = PORTRAIT ? 300 : 220, tx = VW / 2 - tw / 2, ty = PORTRAIT ? 84 : 18;
     pill(tx, ty, tw, 54, '#fff0d6');
