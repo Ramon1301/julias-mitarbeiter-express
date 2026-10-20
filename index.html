@@ -835,7 +835,7 @@ async function loadGameBoard() {
 }
 function gameTile() {
   const lead = Object.entries(gameBoard).sort((a, b) => b[1].best - a[1].best)[0];
-  return `<a class="tile game" href="schlechte-zeiten.html">
+  return `<a class="tile game" href="schlechte-zeiten.html?v=3">
       <img class="cover" src="assets/johann-wut.jpg" alt="Johann weint auf der Bühne, das Publikum buht">
       <div class="game-info">
         <div><h3>Für die schlechten Zeiten</h3><p>Bewirf Johann mit Tomaten, Eiern, Torten & Melonen</p></div>
