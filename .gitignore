@@ -1,3 +1,4 @@
 .preview*
 img/
 .DS_Store
+tests/

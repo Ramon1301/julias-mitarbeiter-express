@@ -84,7 +84,6 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .tile .nums span{font-size:12px;color:var(--muted);font-weight:600;display:inline-flex;align-items:center;gap:6px}
 .tile .nums span i{width:7px;height:7px;border-radius:50%;background:var(--dc)}
 .tile .go{position:absolute;right:20px;top:20px;color:var(--muted);font-weight:700;font-size:13px}
-.tile.soon{border-style:dashed;background:transparent;cursor:default}
 .tile.game{grid-column:1/-1;padding:0;overflow:hidden;text-decoration:none;color:var(--text);gap:0}
 .tile.game .cover{display:block;width:100%;aspect-ratio:1200/624;object-fit:cover;border-bottom:1px solid var(--border)}
 .tile.game .game-info{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px 6px}
@@ -102,8 +101,6 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .tile .next{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;min-width:0}
 .tile .next b{color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile .next i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
-.tile.soon .ico{color:var(--muted)}
-.tile.soon .badge-soon{position:absolute;right:16px;top:16px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:3px 9px}
 .back{display:inline-flex;align-items:center;gap:6px;background:none;border:0;color:var(--muted);font-weight:700;font-size:14px;padding:0;margin-bottom:14px}
 .back:hover{color:var(--text)}
 @media (max-width:640px){ .tiles{grid-template-columns:1fr} .tile{min-height:0} }
@@ -290,7 +287,6 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .pick button[data-prio="1"]{--pc:var(--p1)} .pick button[data-prio="2"]{--pc:var(--p2)} .pick button[data-prio="3"]{--pc:var(--p3)}
 .btn{border:0;border-radius:14px;padding:11px 18px;font-weight:700;display:inline-flex;align-items:center;gap:8px;background:var(--surface-2);color:var(--text)}
 .btn-primary{background:var(--grad);color:#fff}
-.btn-ok{background:var(--ok);color:#0c0a1d}
 .btn-link{background:none;color:var(--muted);padding:11px 8px;margin-right:auto;font-weight:600}
 .btn-link:hover{color:var(--p3)}
 .info{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
@@ -334,7 +330,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:90}
 }
 @media (hover:hover){
   .person-btn:hover{transform:translateY(-4px) scale(1.02)}
-  .tile:not(.soon):hover{transform:translateY(-3px);border-color:#4a4380}
+  .tile:hover{transform:translateY(-3px);border-color:#4a4380}
   .team-card:hover{transform:translateY(-3px)}
   .task:hover{transform:translateY(-2px);border-color:#3d3770;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 14px 30px -18px rgba(0,0,0,.9)}
   .act:hover{transform:scale(1.05);filter:brightness(1.1)}
@@ -419,7 +415,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261020-203120';
+const BUILD = '20261020-205632';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -458,44 +454,92 @@ function normalize(d) {
   });
   return d;
 }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const hasContent = d => !!(d && ((d.tasks && d.tasks.length) || (d.events && d.events.length) || (d.activity && d.activity.length)));
 async function fetchRemote() {
   const r = await fetch(STORE_URL + '?t=' + Date.now(), { cache: 'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const txt = await r.text();
-  return normalize(txt.trim() ? JSON.parse(txt) : {});
+  return normalize(txt.trim() ? JSON.parse(txt) : {});        // kaputtes JSON → Fehler → nichts wird überschrieben
 }
 async function pushRemote(d) {
   const r = await fetch(STORE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(d) });
   if (!r.ok) throw new Error('HTTP ' + r.status);
 }
-let pending = 0;
 async function pull() {
-  if (pending) return;
+  if (outbox.length) return;                                   // eigene Änderungen haben Vorrang, bis sie gespeichert sind
   try {
     const remote = await fetchRemote();
-    const raw = JSON.stringify(remote);
+    // Schutz: kommt plötzlich ein leerer Stand, obwohl wir Daten haben, ist das ein Aussetzer des Dienstes → ignorieren
+    if (!hasContent(remote) && hasContent(data)) { setSync('err'); return; }
     setSync('');
-    if (raw !== lastRaw && !pending) { lastRaw = raw; data = remote; save('todo.cache', data); render(); }
-  } catch { setSync('err'); }
+    const raw = JSON.stringify(remote);
+    if (raw !== lastRaw && !outbox.length) { lastRaw = raw; data = remote; save('todo.cache', data); render(); }
+    dailyBackup();
+  } catch { setSync(navigator.onLine === false ? 'err' : syncState); }
 }
 
-// Jede Änderung: neuesten Stand holen, Änderung anwenden, zurückschreiben – so gehen Änderungen der anderen nicht verloren.
-let queue = Promise.resolve();
+/* Speichern mit Absicherung:
+   1. neuesten Stand holen, Änderung anwenden, mit eindeutiger Kennung zurückschreiben
+   2. kurz danach nachlesen: ist die Kennung im gespeicherten Stand? → angekommen
+      (hat jemand gleichzeitig gespeichert und unsere Änderung überschrieben, wird sie auf dem neuen Stand wiederholt)
+   3. ohne Netz bleibt die Änderung in der Warteschlange und wird automatisch nachgeholt                       */
+const outbox = [];
+let flushing = false, retryT = null, retryDelay = 2000, offlineToast = false;
 function mutate(fn, activity) {
   fn(data); if (activity) addActivity(data, activity); render();
-  pending++;
-  queue = queue.then(async () => {
-    setSync('busy');
-    try {
-      const remote = await fetchRemote();
-      fn(remote); if (activity) addActivity(remote, activity);
-      remote.rev++;
-      await pushRemote(remote);
-      data = remote; lastRaw = JSON.stringify(remote); save('todo.cache', data);
-      setSync(''); render();
-    } catch { setSync('err'); toast('Konnte nicht speichern – Internet prüfen'); }
-    finally { pending--; }
-  });
+  outbox.push({ fn, activity, id: uid() });
+  flush();
+}
+async function commit(op) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const remote = await fetchRemote();
+    if (!hasContent(remote) && hasContent(data)) throw new Error('leerer Stand');
+    if ((remote.ops || []).includes(op.id)) return remote;     // schon drin (z. B. nach Verbindungsabbruch)
+    op.fn(remote); if (op.activity) addActivity(remote, op.activity);
+    remote.rev = (remote.rev || 0) + 1;
+    remote.ops = [...(remote.ops || []), op.id].slice(-80);
+    await pushRemote(remote);
+    await sleep(350 + Math.random() * 300);
+    const check = await fetchRemote();
+    if ((check.ops || []).includes(op.id)) return check;      // angekommen ✓
+    await sleep(200 + Math.random() * 400);                    // überschrieben → neu anwenden
+  }
+  throw new Error('nicht bestätigt');
+}
+async function flush() {
+  if (flushing) return; flushing = true; clearTimeout(retryT);
+  setSync('busy');
+  try {
+    while (outbox.length) {
+      const latest = await commit(outbox[0]);
+      outbox.shift();
+      if (!outbox.length) { data = latest; lastRaw = JSON.stringify(latest); save('todo.cache', data); render(); }
+    }
+    setSync(''); retryDelay = 2000;
+    if (offlineToast) { toast('Alles gespeichert ✓'); offlineToast = false; }
+  } catch {
+    setSync('err');
+    if (!offlineToast) { toast('Kein Netz – deine Änderung wird automatisch nachgeholt'); offlineToast = true; }
+    retryT = setTimeout(flush, retryDelay); retryDelay = Math.min(retryDelay * 2, 30000);
+  } finally { flushing = false; }
+}
+addEventListener('online', () => { retryDelay = 2000; flush(); });
+addEventListener('beforeunload', e => { if (outbox.length) { e.preventDefault(); e.returnValue = ''; } });
+
+// Tägliche Sicherung: je Wochentag ein Speicherplatz → die letzten 7 Tage bleiben erhalten
+let backupTried = false;
+async function dailyBackup() {
+  if (backupTried || !hasContent(data)) return; backupTried = true;
+  const d = new Date(), today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  if (load('todo.backupDay', null) === today) return;
+  const url = STORE_URL + '-backup-' + ['so', 'mo', 'di', 'mi', 'do', 'fr', 'sa'][d.getDay()];
+  try {
+    const t = await (await fetch(url + '?t=' + Date.now(), { cache: 'no-store' })).text();
+    const old = t.trim() ? JSON.parse(t) : null;
+    if (!old || old.date !== today) await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ date: today, savedAt: Date.now(), by: me, data }) });
+    save('todo.backupDay', today);
+  } catch { backupTried = false; }
 }
 function addActivity(d, text) { d.activity.unshift({ who: me, text, at: Date.now() }); d.activity = d.activity.slice(0, 40); }
 
@@ -507,7 +551,6 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 // Fehlt ein Bild, wird der Anfangsbuchstabe gezeigt.
 let PHOTOS = load('todo.photos', {});
 const avatar = p => `<span class="avatar" data-p="${p ? esc(p) : 'none'}">${p ? esc(p[0]) : '?'}${PHOTOS[p] ? `<img src="${PHOTOS[p]}" alt="">` : ''}</span>`;
-const personPill = p => `<span class="pill person" data-p="${esc(p)}">${avatar(p)}${esc(p)}</span>`;
 const prioPill = n => `<span class="pill prio" style="--pc:var(--p${n})">${PRIOS[n].emo} ${PRIOS[n].label}</span>`;
 const chatSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>';
 const calSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';

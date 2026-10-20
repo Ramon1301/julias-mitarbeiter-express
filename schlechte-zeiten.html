@@ -307,11 +307,20 @@ async function loadBoard() {
 async function saveScore(name, pts) {
   board[name] = { best: Math.max(board[name]?.best || 0, pts), games: (board[name]?.games || 0) + 1, at: Date.now() }; store.set('board', board);
   if (!SCORE_URL) return;
-  try {   // erst neu laden, dann nur den eigenen Eintrag ändern → keine fremden Rekorde überschreiben
-    const t = await (await fetch(SCORE_URL + '?t=' + Date.now(), { cache: 'no-store' })).text(); const cur = t.trim() ? JSON.parse(t) : {};
-    cur[name] = { best: Math.max(cur[name]?.best || 0, pts), games: (cur[name]?.games || 0) + 1, at: Date.now() };
-    await fetch(SCORE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(cur) }); board = cur; store.set('board', board);
-  } catch {}
+  const id = Math.random().toString(36).slice(2);
+  // erst neu laden, nur den eigenen Eintrag ändern, danach nachprüfen – bei gleichzeitigem Speichern wiederholen
+  for (let i = 0; i < 4; i++) {
+    try {
+      const get = async () => { const t = await (await fetch(SCORE_URL + '?t=' + Date.now(), { cache: 'no-store' })).text(); return t.trim() ? JSON.parse(t) : {}; };
+      const cur = await get();
+      if (cur[name]?.last === id) { board = cur; break; }
+      cur[name] = { best: Math.max(cur[name]?.best || 0, pts), games: (cur[name]?.games || 0) + 1, at: Date.now(), last: id };
+      await fetch(SCORE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(cur) });
+      await new Promise(r => setTimeout(r, 400 + Math.random() * 300));
+      const check = await get();
+      if (check[name]?.last === id) { board = check; store.set('board', board); break; }
+    } catch { await new Promise(r => setTimeout(r, 2000 * (i + 1))); }
+  }
 }
 async function loadPhotos() {
   if (!SCORE_KEY) return;
