@@ -10,26 +10,10 @@
 <style>
 html,body{margin:0;height:100%;background:#2a1d2e;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 canvas{display:block;width:100vw;height:100vh}
-/* Hinweis: Handy ins Querformat drehen (nur Handys im Hochformat) */
-#rotate{position:fixed;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px;text-align:center;
-  background:linear-gradient(160deg,#4a2a6e,#a14f86);color:#fff;font-family:'Baloo 2',system-ui,sans-serif}
-#rotate .phone{width:64px;height:104px;border:6px solid #fff;border-radius:16px;position:relative;animation:turn 2.4s ease-in-out infinite}
-#rotate .phone::after{content:"";position:absolute;bottom:6px;left:50%;width:14px;height:4px;margin-left:-7px;border-radius:2px;background:#fff}
-@keyframes turn{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
-#rotate h2{margin:6px 0 0;font-size:30px;font-weight:800;line-height:1.1}
-#rotate p{margin:0;font-size:17px;opacity:.85;max-width:300px}
-#rotate button{margin-top:6px;font:inherit;font-weight:800;font-size:15px;color:#fff;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.6);border-radius:999px;padding:10px 18px}
-@media (orientation:portrait) and (pointer:coarse){ body:not(.hochformat) #rotate{display:flex} }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="rotate">
-  <div class="phone"></div>
-  <h2>Bitte dreh dein Handy 📱↻</h2>
-  <p>„Für die schlechten Zeiten" macht im Querformat am meisten Spaß.</p>
-  <button onclick="document.body.classList.add('hochformat')">Trotzdem im Hochformat spielen</button>
-</div>
 <script>
 /* =====================================================================
    FÜR DIE SCHLECHTEN ZEITEN
@@ -38,15 +22,30 @@ canvas{display:block;width:100vw;height:100vh}
    Alles ist Vektorgrafik → scharf auf jedem Bildschirm.
    ===================================================================== */
 const cv = document.getElementById('c'); let g = cv.getContext('2d');
-const VW = 1000, VH = 620;                              // logische Spielfläche
+// Logische Spielfläche – im Hochformat schmal und hoch (füllt das Handy ganz aus), sonst breit.
+let VW = 1000, VH = 620, PORTRAIT = false, STAGE_Y = 520, PULT_X = 500, SCALE = .9, BANNER_Y = 104, TY = 0;
+let TRAY = [], BTN_BACK, BTN_SCORE, BTN_MUTE, PICK, BTN_SWITCH, JO = null;
+const CROUCH = 78;
 let S = 1, OX = 0, OY = 0, DPR = 1;
 function fit() {
   DPR = Math.min(devicePixelRatio || 1, 2);
   cv.width = innerWidth * DPR; cv.height = innerHeight * DPR;
+  PORTRAIT = innerHeight > innerWidth * 1.05;
+  VW = PORTRAIT ? 620 : 1000;
+  VH = PORTRAIT ? Math.round(Math.min(1400, Math.max(900, 620 * innerHeight / innerWidth))) : 620;
+  STAGE_Y = VH - (PORTRAIT ? 170 : 100); PULT_X = VW / 2; SCALE = PORTRAIT ? 1.18 : .9;
+  BANNER_Y = PORTRAIT ? 190 : 104; TY = PORTRAIT ? Math.round((VH - 620) / 2) : 0;
   S = Math.min(innerWidth / VW, innerHeight / VH);
   OX = (innerWidth - VW * S) / 2; OY = (innerHeight - VH * S) / 2;
+  const tw = Math.min(VW - 32, PORTRAIT ? 588 : 520), th = PORTRAIT ? 120 : 96, tx0 = (VW - tw) / 2, ty0 = VH - th - (PORTRAIT ? 24 : 10);
+  TRAY = [0, 1, 2, 3].map(i => ({ x: tx0 + tw / 4 * (i + .5), y: ty0 + th / 2, w: tw / 4, h: th, x0: tx0 + tw / 4 * i, y0: ty0 }));
+  TRAY.box = { x: tx0, y: ty0, w: tw, h: th };
+  BTN_BACK = { x: 20, y: 18, w: 160, h: 50 }; BTN_SCORE = { x: VW - 236, y: 18, w: 170, h: 50 }; BTN_MUTE = { x: VW - 56, y: 18, w: 44, h: 50 };
+  PICK = ['Julia', 'Joris', 'Ramon'].map((n, i) => ({ n, x: VW / 2 - 270 + i * 190, y: 372, w: 160, h: 64 }));   // y relativ zum Menü (+TY)
+  BTN_SWITCH = { x: VW / 2 - 90, y: 560, w: 180, h: 36 };
+  if (JO) { JO.y = STAGE_Y; JO.x = clamp(JO.x, VW * .15, VW * .85); JO.tx = clamp(JO.tx, VW * .15, VW * .85); }
 }
-addEventListener('resize', fit); fit();
+addEventListener('resize', fit);
 
 const OUT = '#2a1d2e';
 const COL = { coral: '#ff8c6b', gold: '#ffd166', cream: '#fff0d6', teal: '#3a7f8f', tealDk: '#285c69', pink: '#f472b6' };
@@ -221,21 +220,20 @@ function drawHead(st) {
 }
 
 /* ---------------- Bühne ---------------- */
-const STAGE_Y = 520, PULT_X = 500;
 function drawStage(t, noBanner = false) {
   // Wand: warmer Farbverlauf mit Streifen
   const wall = g.createLinearGradient(0, 0, 0, STAGE_Y); wall.addColorStop(0, '#4a2a6e'); wall.addColorStop(.6, '#7a3d86'); wall.addColorStop(1, '#a14f86');
   g.fillStyle = wall; g.fillRect(0, 0, VW, STAGE_Y);
-  for (let i = 0; i < 26; i++) { g.fillStyle = i % 2 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)'; g.fillRect(i * 40, 0, 40, STAGE_Y); }
+  for (let i = 0; i < VW / 40 + 1; i++) { g.fillStyle = i % 2 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)'; g.fillRect(i * 40, 0, 40, STAGE_Y); }
   // Scheinwerferkegel (bewegen sich langsam)
   g.save(); g.globalCompositeOperation = 'lighter';
-  [['rgba(255,209,102,.16)', 220, .6], ['rgba(244,114,182,.14)', 780, -.5], ['rgba(95,179,191,.13)', 500, .25]].forEach(([c, x, sp], i) => {
+  [['rgba(255,209,102,.16)', VW * .22, .6], ['rgba(244,114,182,.14)', VW * .78, -.5], ['rgba(95,179,191,.13)', VW * .5, .25]].forEach(([c, x, sp], i) => {
     const sw = Math.sin(t * sp + i) * 120; g.fillStyle = c; g.beginPath(); g.moveTo(x - 20, 0); g.lineTo(x + 20, 0); g.lineTo(x + sw + 170, STAGE_Y); g.lineTo(x + sw - 170, STAGE_Y); g.fill();
   });
   g.restore();
   // Banner „Neue Wege gehen" (bunt)
   if (!noBanner) {
-  g.save(); g.translate(VW / 2, 104); g.rotate(-.02);
+  g.save(); g.translate(VW / 2, BANNER_Y); g.rotate(-.02); if (PORTRAIT) g.scale(.92, .92);
   shape(COL.cream, () => g.roundRect(-240, -44, 480, 88, 16), 5);
   g.font = FONT(800, 54); g.textAlign = 'left'; g.textBaseline = 'middle';
   const words = [['Neue ', COL.teal], ['Wege ', '#e0472f'], ['gehen', '#e0a32e']];
@@ -244,10 +242,10 @@ function drawStage(t, noBanner = false) {
   }
   // Vorhänge
   for (const s of [0, 1]) {
-    g.save(); if (s) { g.translate(VW, 0); g.scale(-1, 1); }
-    shape('#d23a4e', () => { g.moveTo(0, 0); g.lineTo(130, 0); g.bezierCurveTo(110, 200, 70, 380, 100, STAGE_Y); g.lineTo(0, STAGE_Y); }, 5);
+    g.save(); if (s) { g.translate(VW, 0); g.scale(-1, 1); } if (PORTRAIT) g.scale(.55, 1);
+    shape('#d23a4e', () => { g.moveTo(0, 0); g.lineTo(130, 0); g.bezierCurveTo(110, STAGE_Y * .38, 70, STAGE_Y * .73, 100, STAGE_Y); g.lineTo(0, STAGE_Y); }, 5);
     g.strokeStyle = '#9a2438'; g.lineWidth = 4; for (const x of [30, 60, 90]) { g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x - 8, 200, x - 30, 380, x - 10, STAGE_Y); g.stroke(); }
-    shape(COL.gold, () => g.roundRect(70, 250, 30, 14, 7), 3);                    // goldene Raffung
+    shape(COL.gold, () => g.roundRect(70, STAGE_Y * .48, 30, 14, 7), 3);                    // goldene Raffung
     g.restore();
   }
   // Wimpelkette
@@ -256,12 +254,12 @@ function drawStage(t, noBanner = false) {
   for (let i = 1; i < 24; i++) { const x = i * VW / 24, y = 52 + Math.sin(i / 24 * Math.PI) * 34, sw = Math.sin(t * 2 + i) * 2;
     shape(fl[i % fl.length], () => { g.moveTo(x - 13, y); g.lineTo(x + 13, y); g.lineTo(x + sw, y + 30); }, 3); }
   shape('#b8304a', () => g.rect(-10, -10, VW + 20, 40), 5);
-  for (let i = 0; i < 20; i++) { g.fillStyle = '#d23a4e'; g.beginPath(); g.arc(i * 54 + 27, 30, 27, 0, Math.PI); g.fill(); g.lineWidth = 4; g.strokeStyle = OUT; g.stroke(); }
+  for (let i = 0; i < VW / 54 + 1; i++) { g.fillStyle = '#d23a4e'; g.beginPath(); g.arc(i * 54 + 27, 30, 27, 0, Math.PI); g.fill(); g.lineWidth = 4; g.strokeStyle = OUT; g.stroke(); }
   // Bühnenboden mit Lichtkante
   shape('#c88a52', () => g.rect(-10, STAGE_Y, VW + 20, VH), 5);
   g.fillStyle = '#e0a868'; g.fillRect(0, STAGE_Y + 3, VW, 8);
   g.strokeStyle = '#a56d3e'; g.lineWidth = 2; for (let x = -40; x < VW; x += 70) { g.beginPath(); g.moveTo(x, STAGE_Y + 11); g.lineTo(x - 60, VH); g.stroke(); }
-  for (let i = 0; i < 9; i++) { g.fillStyle = fl[i % fl.length]; g.beginPath(); g.arc(80 + i * 105, STAGE_Y + 16, 6, 0, 7); g.fill(); g.lineWidth = 2.5; g.strokeStyle = OUT; g.stroke(); }  // Bühnenlichter
+  for (let i = 0; i < Math.floor(VW / 105); i++) { g.fillStyle = fl[i % fl.length]; g.beginPath(); g.arc(80 + i * 105, STAGE_Y + 16, 6, 0, 7); g.fill(); g.lineWidth = 2.5; g.strokeStyle = OUT; g.stroke(); }  // Bühnenlichter
 }
 function drawPult() {
   const x = PULT_X, y = STAGE_Y + 10;
@@ -314,11 +312,11 @@ let sel = 0, cool = 0, projectiles = [], wallSplats = [], particles = [], floate
 const jo = { x: 300, tx: 300, y: STAGE_Y, walk: 0, duck: 0, duckT: 0, mood: 'smug', moodT: 0, hands: 'raute', handsT: 0, stains: [], speed: 90, bubbleT: 2 };
 const QUOTES = ['Neue Wege gehen!', 'Wir müssen reden!', 'Das ist Dialog!', 'Bitte sachlich bleiben!', 'Ich bin offen für Kritik!', 'Nächster Punkt!'];
 const HIT_QUOTES = ['Hey!', 'Meine Brille!', 'Mein Anzug!!', 'Das war neu!', 'Unsachlich!', 'Aua!', 'Nicht die Haare!'];
-const SCALE = .9, CROUCH = 78;                                         // Johanns Größe auf der Bühne
+                                         // Johanns Größe auf der Bühne
 
 function reset() {
   time = 60; score = 0; combo = 0; hits = 0; throws = 0; projectiles = []; wallSplats = []; particles = []; floaters = [];
-  Object.assign(jo, { x: 300, tx: 640, walk: 0, duck: 0, duckT: 4, mood: 'smug', moodT: 0, hands: 'point', handsT: 2, stains: [], speed: 110, bubbleT: 1.5 });
+  Object.assign(jo, { x: VW * .3, tx: VW * .64, y: STAGE_Y, walk: 0, duck: 0, duckT: 4, mood: 'smug', moodT: 0, hands: 'point', handsT: 2, stains: [], speed: 110, bubbleT: 1.5 });
   bubble = { text: 'Neue Wege gehen!', t: 2.2 };
 }
 
@@ -337,14 +335,10 @@ function tone(fr, dur, vol = .05, slide = 0, type = 'sine') {
   o.type = type; o.frequency.setValueAtTime(fr, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, fr + slide), t + dur);
   gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(gn).connect(actx.destination); o.start(); o.stop(t + dur);
 }
-const SFX = { throw: () => tone(500, .15, .04, 500), splat: big => { noise(big ? .45 : .25, big ? .5 : .35, big ? 900 : 1600); tone(big ? 90 : 140, .2, .08, -40, 'triangle'); }, miss: () => noise(.2, .15, 800), oof: () => tone(220, .25, .05, -80, 'square') };
+const SFX = { pick: () => tone(880, .06, .03), throw: () => tone(500, .15, .04, 500), splat: big => { noise(big ? .45 : .25, big ? .5 : .35, big ? 900 : 1600); tone(big ? 90 : 140, .2, .08, -40, 'triangle'); }, miss: () => noise(.2, .15, 800), oof: () => tone(220, .25, .05, -80, 'square') };
 
 /* ---------------- Eingabe ---------------- */
 function toV(e) { return { x: (e.clientX - OX) / S, y: (e.clientY - OY) / S }; }
-const TRAY = ITEMS.map((it, i) => ({ x: VW / 2 + (i - 1.5) * 96, y: VH - 50, r: 36 }));
-const BTN_BACK = { x: 20, y: 18, w: 160, h: 50 }, BTN_SCORE = { x: VW - 236, y: 18, w: 170, h: 50 }, BTN_MUTE = { x: VW - 56, y: 18, w: 44, h: 50 };
-const PICK = Object.keys(PLAYERS).map((n, i) => ({ n, x: VW / 2 - 270 + i * 190, y: 372, w: 160, h: 64 }));
-const BTN_SWITCH = { x: VW / 2 - 90, y: 560, w: 180, h: 36 };
 const inR = (p, r) => p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h;
 cv.addEventListener('pointerdown', e => {
   e.preventDefault(); audio();
@@ -354,14 +348,14 @@ cv.addEventListener('pointerdown', e => {
   if (state !== 'play' && inR(p, BTN_SCORE)) { boardOpen = true; loadBoard(); return; }
   if (state === 'title' && inR(p, BTN_BACK)) { location.href = 'index.html'; return; }
   if (state === 'title') {
-    if (!me) { const k = PICK.find(b => inR(p, b)); if (k) { me = k.n; try { localStorage.setItem('todo.me', JSON.stringify(me)); } catch {} } return; }
-    if (inR(p, BTN_SWITCH)) { me = null; return; }
+    const pm = { x: p.x, y: p.y - TY };
+    if (!me) { const k = PICK.find(b => inR(pm, b)); if (k) { me = k.n; try { localStorage.setItem('todo.me', JSON.stringify(me)); } catch {} } return; }
+    if (inR(pm, BTN_SWITCH)) { me = null; return; }
     reset(); state = 'play'; return;
   }
   if (state === 'over') { if (overT > 0) return; reset(); state = 'play'; return; }
-  const ti = TRAY.findIndex(b => Math.hypot(p.x - b.x, p.y - b.y) < b.r + 8);
-  if (ti >= 0) { sel = ti; return; }
-  if (p.y > VH - 100 && Math.abs(p.x - VW / 2) < 220) return;     // Klicks auf die Leiste nicht als Wurf werten
+  const tb = TRAY.box;
+  if (p.x > tb.x - 6 && p.x < tb.x + tb.w + 6 && p.y > tb.y - 10) { sel = clamp(Math.floor((p.x - tb.x) / (tb.w / 4)), 0, 3); SFX.pick(); return; }   // ganze Leiste = Auswahl, nie ein Wurf
   throwAt(p.x, p.y);
 });
 addEventListener('keydown', e => { if (e.key >= '1' && e.key <= '4') sel = +e.key - 1; if (e.key === 'm') { muted = !muted; store.set('muted', muted); } });
@@ -393,7 +387,7 @@ function update(dt) {
   // Johann läuft hin und her – je später, desto schneller und öfter ducken
   const hurry = 1 + (60 - time) / 45;
   const dx = jo.tx - jo.x;
-  if (Math.abs(dx) < 6) { if (Math.random() < dt * 1.5) jo.tx = rand(170, 830); }
+  if (Math.abs(dx) < 6) { if (Math.random() < dt * 1.5) jo.tx = rand(VW * .17, VW * .83); }
   else { jo.x += Math.sign(dx) * Math.min(Math.abs(dx), jo.speed * hurry * dt); jo.walk += dt * 9; }
   if ((jo.duckT -= dt) <= 0) { jo.duckGoal = jo.duckGoal ? 0 : 1; jo.duckT = jo.duckGoal ? rand(.6, 1.2) : rand(2.5, 5) / hurry; }
   jo.duck += ((jo.duckGoal || 0) - jo.duck) * Math.min(1, dt * 9);
@@ -507,46 +501,53 @@ function hud() {
     if (me) avatarCircle(me, 50, 45, 18);
     label(`${score}`, 140, 46, 36, '#fff');
     // Zeit als Balken-Uhr
-    const tw = 220, tx = VW / 2 - tw / 2;
-    pill(tx, 18, tw, 54, '#fff0d6');
-    shape(time < 10 ? '#e0472f' : '#5fb3bf', () => g.roundRect(tx + 8, 28, Math.max(20, (tw - 16) * time / 60), 34, 17), 3);
-    label(`${Math.ceil(time)} s`, VW / 2, 46, 30, '#fff');
-    if (combo >= 2) { g.save(); g.translate(VW / 2 + 190, 46); g.rotate(-.06); pill(-70, -24, 140, 48, COL.pink); label(`Combo x${combo}`, 0, 1, 24, '#fff', 'center', null); g.restore(); }
+    const tw = PORTRAIT ? 300 : 220, tx = VW / 2 - tw / 2, ty = PORTRAIT ? 84 : 18;
+    pill(tx, ty, tw, 54, '#fff0d6');
+    shape(time < 10 ? '#e0472f' : '#5fb3bf', () => g.roundRect(tx + 8, ty + 10, Math.max(20, (tw - 16) * time / 60), 34, 17), 3);
+    label(`${Math.ceil(time)} s`, VW / 2, ty + 28, 30, '#fff');
+    if (combo >= 2) { g.save(); g.translate(PORTRAIT ? VW - 110 : VW / 2 + 190, PORTRAIT ? 270 : 46); g.rotate(-.06); pill(-70, -24, 140, 48, COL.pink); label(`Combo x${combo}`, 0, 1, 24, '#fff', 'center', null); g.restore(); }
   }
   topButtons();
-  // Wurfleiste
+  // Wurfleiste: vier große Felder, das gewählte leuchtet golden
   if (state === 'play') {
-    const bx = VW / 2 - 200, by = VH - 96;
-    shape('rgba(42,29,46,.78)', () => g.roundRect(bx, by, 400, 88, 30), 0);
+    const tb = TRAY.box;
+    shape('rgba(42,29,46,.82)', () => g.roundRect(tb.x, tb.y, tb.w, tb.h, 28), 0);
     TRAY.forEach((b, i) => {
-      const on = i === sel, lift = on ? -8 : 0;
-      shape(on ? COL.gold : '#fff0d6', () => g.arc(b.x, b.y + lift, b.r, 0, 7), on ? 5 : 3);
-      drawItem(ITEMS[i].key, b.x, b.y - 4 + lift, ITEMS[i].r * (on ? 1 : .85), -.2);
-      if (on && cool > 0) { g.fillStyle = 'rgba(42,29,46,.4)'; g.beginPath(); g.moveTo(b.x, b.y + lift); g.arc(b.x, b.y + lift, b.r, -Math.PI / 2, -Math.PI / 2 + 6.28 * cool / ITEMS[i].cool); g.fill(); }
-      if (on) label(ITEMS[i].name, b.x, b.y - b.r - 18 + lift, 20, '#fff', 'center', OUT, 5);
+      const on = i === sel, it = ITEMS[i];
+      if (on) {
+        shape(COL.gold, () => g.roundRect(b.x0 + 6, b.y0 + 6, b.w - 12, b.h - 12, 22), 4);
+        if (cool > 0) { g.fillStyle = 'rgba(42,29,46,.28)'; g.beginPath(); g.roundRect(b.x0 + 6, b.y0 + 6, (b.w - 12) * cool / it.cool, b.h - 12, 22); g.fill(); }
+      }
+      const bounce = on ? Math.sin(performance.now() / 180) * 2 : 0;
+      drawItem(it.key, b.x, b.y - (PORTRAIT ? 14 : 10) + bounce, it.r * (on ? 1.15 : .95), -.2);
+      label(it.name, b.x, b.y0 + b.h - (PORTRAIT ? 22 : 17), PORTRAIT ? 20 : 17, on ? OUT : '#fff0d6', 'center', null);
     });
   }
 }
 function titleScreen(t) {
   g.fillStyle = 'rgba(42,29,46,.55)'; g.fillRect(0, 0, VW, VH);
-  g.save(); g.translate(VW / 2, 176); g.rotate(-.04 + Math.sin(t * 2) * .015);
+  g.save(); g.translate(0, TY);
+  g.save(); g.translate(VW / 2, 176); g.rotate(-.04 + Math.sin(t * 2) * .015); if (PORTRAIT) g.scale(.66, .66);
   label('Für die', 0, -58, 88, COL.gold, 'center', OUT, 16);
   label('schlechten Zeiten', 0, 30, 88, COL.coral, 'center', OUT, 16);
   g.restore();
-  label('Bewirf Johann mit Tomaten, Eiern, Torten & Melonen!', VW / 2, 284, 26, '#fff', 'center', OUT, 6);
+  if (PORTRAIT) { label('Bewirf Johann mit Tomaten,', VW / 2, 270, 26, '#fff', 'center', OUT, 6); label('Eiern, Torten & Melonen!', VW / 2, 300, 26, '#fff', 'center', OUT, 6); }
+  else label('Bewirf Johann mit Tomaten, Eiern, Torten & Melonen!', VW / 2, 284, 26, '#fff', 'center', OUT, 6);
   if (!me) {
     label('Wer spielt?', VW / 2, 336, 30, COL.gold, 'center', OUT, 6);
     PICK.forEach(b => { pill(b.x, b.y, b.w, b.h, PLAYERS[b.n]); avatarCircle(b.n, b.x + 34, b.y + 32, 20); label(b.n, b.x + 102, b.y + 34, 26, '#fff', 'center', OUT, 5); });
-    return;
+    g.restore(); return;
   }
-  [['tomato', 300], ['egg', 420], ['pie', 580], ['melon', 700]].forEach(([k, x], i) => drawItem(k, x, 360 + Math.sin(t * 3 + i) * 8, 30, Math.sin(t + i) * .3));
+  [['tomato', VW * .3], ['egg', VW * .43], ['pie', VW * .58], ['melon', VW * .71]].forEach(([k, x], i) => drawItem(k, x, 360 + Math.sin(t * 3 + i) * 8, 30, Math.sin(t + i) * .3));
   avatarCircle(me, VW / 2 - 110, 452, 22); label(`Hallo ${me}!`, VW / 2 + 20, 454, 30, '#fff', 'center', OUT, 6);
   if (Math.floor(t * 2) % 2) label('Tippen zum Starten', VW / 2, 512, 36, COL.gold, 'center', OUT, 7);
   pill(BTN_SWITCH.x, BTN_SWITCH.y, BTN_SWITCH.w, BTN_SWITCH.h, 'rgba(255,240,214,.85)', 3);
   label('Spieler wechseln', VW / 2, BTN_SWITCH.y + 19, 18, OUT, 'center', null);
+  g.restore();
 }
 function overScreen(t) {
   g.fillStyle = 'rgba(42,29,46,.6)'; g.fillRect(0, 0, VW, VH);
+  g.save(); g.translate(0, TY);
   shape(COL.cream, () => g.roundRect(VW / 2 - 260, 110, 520, 380, 30), 6);
   label('Zeit um!', VW / 2, 166, 46, OUT, 'center', null);
   label(`${score}`, VW / 2, 252, 84, COL.coral, 'center', OUT, 10);
@@ -556,9 +557,11 @@ function overScreen(t) {
   const lead = Object.entries(board).sort((a, b) => b[1].best - a[1].best)[0];
   if (lead) label(`Spitze: ${lead[0]} mit ${lead[1].best}`, VW / 2, 400, 22, PLAYERS[lead[0]] || OUT, 'center', OUT, 4);
   if (overT <= 0 && Math.floor(t * 2) % 2) label('Tippen für noch eine Runde', VW / 2, 452, 30, COL.teal, 'center', null);
+  g.restore();
 }
 function boardScreen() {
   g.fillStyle = 'rgba(42,29,46,.72)'; g.fillRect(0, 0, VW, VH);
+  g.save(); g.translate(0, TY);
   shape(COL.cream, () => g.roundRect(VW / 2 - 290, 70, 580, 480, 30), 6);
   label('🏆 Highscore', VW / 2, 124, 46, OUT, 'center', null);
   const rows = Object.keys(PLAYERS).map(n => [n, board[n]?.best || 0, board[n]?.games || 0]).sort((a, b) => b[1] - a[1]);
@@ -573,6 +576,7 @@ function boardScreen() {
     if (lead) label('👑', VW / 2 - 150, y - 34, 26, '#000', 'center', null);
   });
   label(SCORE_URL ? 'Gemeinsame Bestenliste von euch dreien' : 'Bestenliste auf diesem Gerät', VW / 2, 522, 18, '#8a7a90', 'center', null);
+  g.restore();
 }
 
 /* ---------------- Schleife ---------------- */
@@ -627,6 +631,7 @@ function drawCover(cw, ch, t = 1.2) {
 }
 window.drawCover = drawCover;
 
+JO = jo; fit();
 reset(); bubble = null;
 document.fonts.load(FONT(800, 30)).finally(() => requestAnimationFrame(loop));
 </script>
