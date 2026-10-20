@@ -85,6 +85,12 @@ main{max-width:880px;margin:0 auto;padding:24px 16px 110px}
 .tile .nums span i{width:7px;height:7px;border-radius:50%;background:var(--dc)}
 .tile .go{position:absolute;right:20px;top:20px;color:var(--muted);font-weight:700;font-size:13px}
 .tile.soon{border-style:dashed;background:transparent;cursor:default}
+.tile.game{grid-column:1/-1;padding:0;overflow:hidden;text-decoration:none;color:var(--text);gap:0}
+.tile.game .cover{display:block;width:100%;aspect-ratio:1200/624;object-fit:cover;border-bottom:1px solid var(--border)}
+.tile.game .game-info{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px 6px}
+.tile.game .go{position:static}
+.tile.game .next{padding:0 20px 18px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.tile.game .next b{color:var(--text)}
 .pnexts{display:flex;flex-direction:column;gap:7px;margin-top:auto}
 .tile .pnext-label{margin:0 0 2px;color:var(--muted);font-size:14px}
 .pnext{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}
@@ -570,7 +576,8 @@ function render() {
         <div><b>${mine.length}</b><span style="--dc:var(--c)" data-p="${esc(me)}"><i></i>für dich</span></div>
       </div>
     </button>
-    ${calTile()}`;
+    ${calTile()}
+    ${gameTile()}`;
 
   if (view !== 'todo') return;
   $('#helloSub').textContent = mine.length
@@ -820,6 +827,23 @@ function rangeText(e) {
   return `${shortDay(e.date)}, ${e.start} – ${shortDay(e.endDate)}${e.end ? ', ' + e.end : ''}`;
 }
 const pinSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+
+// Spiel-Kachel: Cover + wer gerade im Highscore vorne liegt
+let gameBoard = {};
+async function loadGameBoard() {
+  try { const t = await (await fetch(STORE_URL + '-spiel?t=' + Date.now(), { cache: 'no-store' })).text(); gameBoard = t.trim() ? JSON.parse(t) : {}; if (view === 'dash') render(); } catch {}
+}
+function gameTile() {
+  const lead = Object.entries(gameBoard).sort((a, b) => b[1].best - a[1].best)[0];
+  return `<a class="tile game" href="schlechte-zeiten.html">
+      <img class="cover" src="assets/johann-wut.jpg" alt="Johann weint auf der Bühne, das Publikum buht">
+      <div class="game-info">
+        <div><h3>Für die schlechten Zeiten</h3><p>Bewirf Johann mit Tomaten, Eiern, Torten & Melonen</p></div>
+        <span class="go">Spielen →</span>
+      </div>
+      ${lead ? `<div class="next" data-p="${esc(lead[0])}">${avatar(lead[0])}<span>🏆 <b>${esc(lead[0])}</b> führt mit ${lead[1].best} Punkten</span></div>` : '<div class="next"><span>🏆 Noch kein Highscore – wer fängt an?</span></div>'}
+    </a>`;
+}
 
 function calTile() {
   const t = todayStr();
@@ -1145,6 +1169,7 @@ function goTo(v) {
   if (v !== 'dash') history.pushState({ view: v }, '');
   else if (history.state?.view) { history.back(); return; }
   view = v; closeModal(); render(); scrollTo(0, 0);
+  if (v === 'dash') loadGameBoard();
 }
 let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (view === 'cal') renderCal(); }, 150); });
 addEventListener('popstate', () => { view = history.state?.view || 'dash'; closeModal(); render(); });
@@ -1160,6 +1185,7 @@ if (!STORE_KEY) { $('#locked').classList.remove('hidden'); throw new Error('kein
 normalize(data);
 render();
 pull();
+loadGameBoard();
 // Profilbilder einmal pro Besuch laden
 fetch(STORE_URL + '-fotos?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(txt => {
   if (!txt.trim()) return;
