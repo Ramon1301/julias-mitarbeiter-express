@@ -30,7 +30,7 @@ let S = 1, OX = 0, OY = 0, DPR = 1;
 function fit() {
   DPR = Math.min(devicePixelRatio || 1, 2);
   cv.width = innerWidth * DPR; cv.height = innerHeight * DPR;
-  PORTRAIT = innerHeight > innerWidth * 1.05;
+  PORTRAIT = false;   // immer das klassische Querformat-Layout – im Hochformat wird es einfach kleiner angezeigt (ohne Dreh-Aufforderung)
   VW = PORTRAIT ? 620 : 1000;
   VH = PORTRAIT ? Math.round(Math.min(1400, Math.max(900, 620 * innerHeight / innerWidth))) : 620;
   STAGE_Y = VH - (PORTRAIT ? 170 : 100); PULT_X = VW / 2; SCALE = PORTRAIT ? 1.18 : .9;
