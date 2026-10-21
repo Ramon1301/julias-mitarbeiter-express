@@ -415,7 +415,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261020-205632';
+const BUILD = '20261021-135235';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -438,7 +438,7 @@ let syncState = '';
 function setSync(s) { syncState = s; const d = document.querySelector('.sync-dot'); if (d) d.className = 'sync-dot ' + s; }
 
 function normalize(d) {
-  d.tasks ||= []; d.activity ||= []; d.events ||= []; d.rev ||= 0;
+  d.tasks ||= []; d.activity ||= []; d.events ||= []; d.rev ||= 0; d.tomb ||= {};
   // Teilnehmer eines Termins (ältere Termine: nur wer ihn eingetragen hat)
   d.events.forEach(e => {
     if (!Array.isArray(e.people) || !e.people.length) e.people = [e.createdBy];
@@ -456,6 +456,7 @@ function normalize(d) {
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const hasContent = d => !!(d && ((d.tasks && d.tasks.length) || (d.events && d.events.length) || (d.activity && d.activity.length)));
+const clone = o => JSON.parse(JSON.stringify(o));
 async function fetchRemote() {
   const r = await fetch(STORE_URL + '?t=' + Date.now(), { cache: 'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -466,66 +467,121 @@ async function pushRemote(d) {
   const r = await fetch(STORE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(d) });
   if (!r.ok) throw new Error('HTTP ' + r.status);
 }
-async function pull() {
-  if (outbox.length) return;                                   // eigene Änderungen haben Vorrang, bis sie gespeichert sind
-  try {
-    const remote = await fetchRemote();
-    // Schutz: kommt plötzlich ein leerer Stand, obwohl wir Daten haben, ist das ein Aussetzer des Dienstes → ignorieren
-    if (!hasContent(remote) && hasContent(data)) { setSync('err'); return; }
-    setSync('');
-    const raw = JSON.stringify(remote);
-    if (raw !== lastRaw && !outbox.length) { lastRaw = raw; data = remote; save('todo.cache', data); render(); }
-    dailyBackup();
-  } catch { setSync(navigator.onLine === false ? 'err' : syncState); }
+
+/* =====================================================================
+   SYNCHRONISATION (überarbeitet)
+   Statt ganze Stände hin- und herzuschieben, merkt sich jedes Gerät nur seine
+   eigenen, noch nicht bestätigten Änderungen – pro Aufgabe, Termin, Kommentar.
+   • Diese „offenen Änderungen" liegen im Speicher des Geräts → überleben auch,
+     wenn die App geschlossen oder das Handy gesperrt wird.
+   • Bei jedem Abgleich (alle 5 s, beim Öffnen, nach jeder Änderung) wird der
+     Server-Stand geholt und die eigenen offenen Änderungen darübergelegt.
+     Die Anzeige zeigt also IMMER den neuesten Server-Stand + eigene Änderungen.
+   • Erst wenn der Server eine Änderung nachweislich enthält, gilt sie als erledigt.
+   • Konflikte: pro Eintrag gewinnt die neuere Änderung; Kommentare werden zusammengeführt.
+   ===================================================================== */
+const KINDS = ['tasks', 'events'];
+let dirty = load('todo.dirty', null) || { tasks: {}, events: {}, tomb: {}, activity: {} };
+const saveDirty = () => save('todo.dirty', dirty);
+const dirtyCount = () => KINDS.reduce((n, k) => n + Object.keys(dirty[k]).length, 0) + Object.keys(dirty.tomb).length + Object.keys(dirty.activity).length;
+const cKey = c => `${c.who}|${c.at}|${c.text}`;
+
+// eigene offene Änderungen über einen Server-Stand legen
+function overlay(R) {
+  const M = clone(R);
+  M.tomb = { ...(M.tomb || {}) };
+  for (const [id, at] of Object.entries(dirty.tomb)) M.tomb[id] = Math.max(M.tomb[id] || 0, at);
+  for (const k of KINDS) {
+    for (const ent of Object.values(dirty[k])) {
+      const i = M[k].findIndex(x => x.id === ent.id), cur = M[k][i];
+      if (!cur) M[k].push(clone(ent));
+      else if ((ent.updatedAt || 0) >= (cur.updatedAt || 0)) {
+        const merged = clone(ent); merged.comments ||= [];
+        if (k === 'tasks') {                                     // Kommentare von beiden Seiten behalten
+          const seen = new Set((merged.comments || []).map(cKey));
+          for (const c of cur.comments || []) if (!seen.has(cKey(c))) merged.comments.push(c);
+          merged.comments.sort((a, b) => a.at - b.at);
+        }
+        M[k][i] = merged;
+      }
+    }
+    M[k] = M[k].filter(x => !(M.tomb[x.id] && M.tomb[x.id] >= (x.updatedAt || 0)));
+  }
+  const acts = new Map(M.activity.map(a => [a.id || a.at + a.who, a]));
+  for (const a of Object.values(dirty.activity)) acts.set(a.id, a);
+  M.activity = [...acts.values()].sort((a, b) => b.at - a.at).slice(0, 40);
+  const cutoff = Date.now() - 60 * 864e5;                     // alte Lösch-Markierungen aufräumen
+  for (const [id, at] of Object.entries(M.tomb)) if (at < cutoff) delete M.tomb[id];
+  return normalize(M);
+}
+// was der Server nachweislich enthält, ist erledigt
+function confirm(C) {
+  for (const k of KINDS) for (const [id, ent] of Object.entries(dirty[k])) {
+    const cur = C[k].find(x => x.id === id);
+    if ((cur && (cur.updatedAt || 0) >= (ent.updatedAt || 0)) || (C.tomb && C.tomb[id] >= (ent.updatedAt || 0))) delete dirty[k][id];
+  }
+  for (const [id, at] of Object.entries(dirty.tomb)) if ((C.tomb && C.tomb[id] >= at) || !KINDS.some(k => C[k].some(x => x.id === id))) delete dirty.tomb[id];
+  for (const id of Object.keys(dirty.activity)) if (C.activity.some(a => a.id === id) || dirty.activity[id].at < Date.now() - 3 * 864e5) delete dirty.activity[id];
+  saveDirty();
+}
+function show(view) {
+  const raw = JSON.stringify(view);
+  if (raw === lastRaw) return;
+  lastRaw = raw; data = view; save('todo.cache', data); render();
 }
 
-/* Speichern mit Absicherung:
-   1. neuesten Stand holen, Änderung anwenden, mit eindeutiger Kennung zurückschreiben
-   2. kurz danach nachlesen: ist die Kennung im gespeicherten Stand? → angekommen
-      (hat jemand gleichzeitig gespeichert und unsere Änderung überschrieben, wird sie auf dem neuen Stand wiederholt)
-   3. ohne Netz bleibt die Änderung in der Warteschlange und wird automatisch nachgeholt                       */
-const outbox = [];
-let flushing = false, retryT = null, retryDelay = 2000, offlineToast = false;
-function mutate(fn, activity) {
-  fn(data); if (activity) addActivity(data, activity); render();
-  outbox.push({ fn, activity, id: uid() });
-  flush();
-}
-async function commit(op) {
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const remote = await fetchRemote();
-    if (!hasContent(remote) && hasContent(data)) throw new Error('leerer Stand');
-    if ((remote.ops || []).includes(op.id)) return remote;     // schon drin (z. B. nach Verbindungsabbruch)
-    op.fn(remote); if (op.activity) addActivity(remote, op.activity);
-    remote.rev = (remote.rev || 0) + 1;
-    remote.ops = [...(remote.ops || []), op.id].slice(-80);
-    await pushRemote(remote);
-    await sleep(350 + Math.random() * 300);
-    const check = await fetchRemote();
-    if ((check.ops || []).includes(op.id)) return check;      // angekommen ✓
-    await sleep(200 + Math.random() * 400);                    // überschrieben → neu anwenden
-  }
-  throw new Error('nicht bestätigt');
-}
-async function flush() {
-  if (flushing) return; flushing = true; clearTimeout(retryT);
-  setSync('busy');
+let syncing = false, again = false, syncTimer = null, failDelay = 2000, offlineToast = false;
+async function sync() {
+  if (syncing) { again = true; return; }
+  syncing = true; again = false; clearTimeout(syncTimer);
   try {
-    while (outbox.length) {
-      const latest = await commit(outbox[0]);
-      outbox.shift();
-      if (!outbox.length) { data = latest; lastRaw = JSON.stringify(latest); save('todo.cache', data); render(); }
-    }
-    setSync(''); retryDelay = 2000;
-    if (offlineToast) { toast('Alles gespeichert ✓'); offlineToast = false; }
+    const R = await fetchRemote();
+    // Schutz: plötzlich leerer Server-Stand, obwohl Daten da waren → Aussetzer, nichts überschreiben
+    if (!hasContent(R) && hasContent(data) && !Object.keys(R.tomb || {}).length) throw new Error('leerer Stand');
+    if (dirtyCount()) {
+      setSync('busy');
+      const M = overlay(R);
+      show(clone(M));                                           // Neues von den anderen sofort zeigen, auch falls Speichern gleich hakt
+      M.rev = (R.rev || 0) + 1;
+      await pushRemote(M);
+      await sleep(450);
+      const C = await fetchRemote();
+      confirm(C);
+      show(overlay(C));
+      if (dirtyCount()) again = true;                           // noch nicht alles bestätigt → gleich nochmal
+      else if (offlineToast) { toast('Alles gespeichert ✓'); offlineToast = false; }
+    } else show(R);
+    setSync(''); failDelay = 2000;
+    dailyBackup();
   } catch {
     setSync('err');
-    if (!offlineToast) { toast('Kein Netz – deine Änderung wird automatisch nachgeholt'); offlineToast = true; }
-    retryT = setTimeout(flush, retryDelay); retryDelay = Math.min(retryDelay * 2, 30000);
-  } finally { flushing = false; }
+    if (dirtyCount() && !offlineToast) { toast('Kein Netz – deine Änderung ist gemerkt und wird automatisch gespeichert'); offlineToast = true; }
+    syncTimer = setTimeout(sync, failDelay); failDelay = Math.min(failDelay * 2, 30000);
+  } finally {
+    syncing = false;
+    if (again) syncTimer = setTimeout(sync, 600);
+  }
 }
-addEventListener('online', () => { retryDelay = 2000; flush(); });
-addEventListener('beforeunload', e => { if (outbox.length) { e.preventDefault(); e.returnValue = ''; } });
+const pull = sync;                                             // (alter Name, wird an mehreren Stellen benutzt)
+
+// Änderung: lokal sofort anwenden, Unterschiede pro Eintrag als „offen" merken, dann abgleichen
+function mutate(fn, activity) {
+  const before = {}; for (const k of KINDS) before[k] = new Map(data[k].map(x => [x.id, JSON.stringify(x)]));
+  fn(data); if (activity) addActivity(data, activity);
+  const now = Date.now();
+  for (const k of KINDS) {
+    const after = new Set();
+    for (const x of data[k]) {
+      after.add(x.id);
+      if (before[k].get(x.id) !== JSON.stringify(x)) { x.updatedAt = Math.max(now, (x.updatedAt || 0) + 1); dirty[k][x.id] = clone(x); }
+    }
+    for (const id of before[k].keys()) if (!after.has(id)) { dirty.tomb[id] = now; delete dirty[k][id]; }
+  }
+  for (const a of data.activity) if (a.id && a.at >= now - 5 && !dirty.activity[a.id]) dirty.activity[a.id] = a;
+  saveDirty(); lastRaw = JSON.stringify(data); save('todo.cache', data); render();
+  sync();
+}
+addEventListener('online', () => { failDelay = 2000; sync(); });
 
 // Tägliche Sicherung: je Wochentag ein Speicherplatz → die letzten 7 Tage bleiben erhalten
 let backupTried = false;
@@ -541,7 +597,7 @@ async function dailyBackup() {
     save('todo.backupDay', today);
   } catch { backupTried = false; }
 }
-function addActivity(d, text) { d.activity.unshift({ who: me, text, at: Date.now() }); d.activity = d.activity.slice(0, 40); }
+function addActivity(d, text) { d.activity.unshift({ id: uid(), who: me, text, at: Date.now() }); d.activity = d.activity.slice(0, 40); }
 
 /* ===================== Helpers ===================== */
 const $ = s => document.querySelector(s);
@@ -1262,9 +1318,9 @@ fetch(STORE_URL + '-fotos?t=' + Date.now(), { cache: 'no-store' }).then(r => r.o
   if (!txt.trim()) return;
   PHOTOS = JSON.parse(txt); save('todo.photos', PHOTOS); render();
 }).catch(() => {});
-setInterval(() => { if (!document.hidden) pull(); }, POLL_MS);
+setInterval(() => { if (!document.hidden) sync(); }, POLL_MS);
 // sofort aktualisieren, wenn die Seite/App wieder in den Vordergrund kommt (auch als App auf dem iPhone-Homebildschirm)
-const wake = () => { if (document.hidden) return; pull(); loadGameBoard(); checkVersion(); };
+const wake = () => { if (document.hidden) return; failDelay = 2000; sync(); loadGameBoard(); checkVersion(); };
 document.addEventListener('visibilitychange', wake);
 addEventListener('focus', wake); addEventListener('pageshow', wake); addEventListener('online', wake);
 setInterval(() => { if (!document.hidden && view === 'dash') loadGameBoard(); }, 15000);

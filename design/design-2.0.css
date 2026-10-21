@@ -1,0 +1,127 @@
+/* =====================================================================
+   DESIGN „NEU" – modern, schlicht, professionell (Dark Mode)
+   Wird nur über das bestehende Design gelegt: gleiche Struktur, gleiche Funktionen.
+   Leitlinien: neutrales Anthrazit statt Lila, keine Farbverläufe,
+   eine ruhige Akzentfarbe, Personenfarben nur als feine Kennzeichnung.
+   ===================================================================== */
+:root{
+  --bg:#0b0b0d; --surface:#131316; --surface-2:#1a1a1f; --surface-3:#222228;
+  --border:#25252c; --border-2:#33333b; --text:#f2f2f4; --muted:#9a9aa6; --subtle:#6e6e7a;
+  --accent:#7c8cff; --accent-2:#5f70f0; --accent-soft:rgba(124,140,255,.14);
+  --grad:var(--accent);
+  /* Personenfarben – etwas ruhiger, gleiche Zuordnung */
+  --ramon:#5ea2f7; --ramon-2:#4a8fe6;
+  --joris:#3fbf8c; --joris-2:#32a87a;
+  --julia:#e77aa5; --julia-2:#d8668f;
+  --p1:#6fbf8f; --p2:#e2b84f; --p3:#ef6a6a;
+  --ok:#3fbf8c; --doing:#a59bff;
+  --radius:14px;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-head:'Inter Tight','Inter',system-ui,sans-serif;
+}
+body{background:var(--bg);background-image:none;font-family:var(--font);font-size:15px;letter-spacing:-.005em;color:var(--text)}
+::selection{background:var(--accent-soft)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3,h4,.tile h3,.hello h2,.modal-head h3,.cal-head h3{font-family:var(--font-head);letter-spacing:-.02em}
+
+/* Avatare: ohne Verlauf, feiner Ring in der Personenfarbe */
+.avatar{background:var(--surface-3);color:var(--c);font-weight:700;box-shadow:0 0 0 1.5px var(--c)}
+
+/* Kopfzeile + Marke */
+header{background:rgba(11,11,13,.82);border-bottom:1px solid var(--border)}
+.brand h1{background:none;-webkit-background-clip:initial;background-clip:initial;color:var(--text);font-weight:700;font-size:18px}
+.brand .dash{color:var(--subtle);font-weight:500}
+.gig{background:none;color:var(--muted);border:1px solid var(--border-2);transform:none;font-weight:700;font-size:11px;letter-spacing:.12em;padding:3px 8px;border-radius:6px}
+.me-btn{background:var(--surface);border-color:var(--border);font-weight:600}
+.sync-dot{box-shadow:none;width:7px;height:7px}
+
+/* Login */
+.login-card .brand h1{font-size:30px}
+.person-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--radius)}
+.person-btn:hover{border-color:var(--border-2);background:var(--surface-2);transform:translateY(-2px) !important}
+.person-btn .avatar{background:var(--surface-3);color:var(--c);box-shadow:0 0 0 2px var(--c)}
+.person-btn small{color:var(--muted);opacity:1}
+
+/* Begrüßung + Abschnittstitel */
+.hello h2{font-weight:700;font-size:28px}
+.hello p{color:var(--muted)}
+.section-label{color:var(--subtle);font-weight:600;letter-spacing:.1em;font-size:11px}
+
+/* Dashboard-Kacheln */
+.tile{background:var(--surface);box-shadow:none;border-radius:var(--radius);border-color:var(--border)}
+.tile:hover{border-color:var(--border-2) !important;transform:none !important;background:var(--surface-2)}
+.tile .ico{background:var(--surface-2);border-color:var(--border);color:var(--accent);border-radius:10px}
+.tile h3{font-weight:650;font-size:18px}
+.tile .nums b{font-weight:650;font-family:var(--font-head)}
+.tile .go{color:var(--subtle);font-weight:500}
+.tile:hover .go{color:var(--text)}
+.tile.game .cover{border-bottom-color:var(--border)}
+
+/* Personen-Karten „Neue Aufgabe für …": neutral statt bunt */
+.team-card{background:var(--surface);border:1px solid var(--border);color:var(--text);box-shadow:none;border-radius:var(--radius)}
+.team-card:hover{border-color:color-mix(in srgb,var(--c) 45%,var(--border));transform:none !important;background:var(--surface-2)}
+.team-card .avatar{background:var(--surface-3);color:var(--c);box-shadow:0 0 0 2px var(--c)}
+.team-card strong{font-weight:650}
+.team-card small{color:var(--muted);opacity:1}
+.team-card .add{background:transparent;border:1px solid var(--border-2);color:var(--text);font-weight:600}
+.team-card:hover .add{background:var(--surface-3)}
+
+/* Tabs als Segment-Schalter */
+.tabs{background:var(--surface);border-color:var(--border);border-radius:12px}
+.tabs button{font-weight:600;color:var(--muted);border-radius:8px}
+.tabs button.on{background:var(--surface-3);color:var(--text);box-shadow:inset 0 0 0 1px var(--border-2)}
+
+/* Aufgaben-Karten: flach, ruhig */
+.task{background:var(--surface);box-shadow:none;border-color:var(--border);border-radius:var(--radius)}
+.task:hover{border-color:var(--border-2) !important;transform:none !important;box-shadow:none !important;background:var(--surface-2)}
+.task::before{width:3px;top:14px;bottom:14px;background:var(--border-2)}
+.task.doing{border-color:var(--border)}
+.t-title{font-weight:600}
+.t-foot{border-top-color:var(--border)}
+
+/* Etiketten: dezent, Farbe nur als Punkt bzw. Schrift */
+.pill{background:var(--surface-2);border:1px solid var(--border);color:var(--muted);font-weight:550;border-radius:7px;height:24px}
+.pill.prio{background:var(--surface-2);color:var(--pc);border-color:color-mix(in srgb,var(--pc) 28%,var(--border))}
+.pill.person{background:var(--surface-2);color:var(--text);border-color:var(--border)}
+.pill.person .avatar{box-shadow:0 0 0 1.5px var(--c)}
+.pill.doing{background:var(--surface-2);color:var(--doing);border-color:color-mix(in srgb,var(--doing) 30%,var(--border))}
+.pill.donep{background:var(--surface-2);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 30%,var(--border))}
+.pill.ps-doing{box-shadow:none;border-color:color-mix(in srgb,var(--doing) 45%,var(--border))}
+.pill.due{color:var(--muted)}
+
+/* Knöpfe: Hauptaktion weiß, Rest neutral */
+.btn{background:var(--surface-2);border:1px solid var(--border);font-weight:600;border-radius:10px}
+.btn-primary{background:var(--text);color:#0b0b0d;border-color:var(--text)}
+.btn-primary:hover{background:#fff}
+.act{border-radius:8px;font-weight:600}
+.act.take{background:var(--text);color:#0b0b0d}
+.act.finish{background:transparent;color:var(--ok);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ok) 55%,transparent)}
+.fab{background:var(--text);color:#0b0b0d;border-radius:16px;box-shadow:0 8px 24px -8px rgba(0,0,0,.7)}
+.cmt.has{background:var(--surface-2)}
+
+/* Fenster, Formulare, Auswahl */
+.overlay{background:rgba(0,0,0,.6)}
+.modal{background:var(--surface);border-color:var(--border);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.modal-head h3{font-weight:650}
+.field>label{color:var(--subtle);font-weight:600;letter-spacing:.08em;font-size:11px}
+.field input,.field textarea,.tp,.ev-when{background:var(--bg);border-color:var(--border);border-radius:10px}
+.field input:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.pick button{border-width:1px;background:var(--bg);border-radius:10px;font-weight:600}
+.pick button.on{background:color-mix(in srgb,var(--pc,var(--c,var(--accent))) 10%,var(--bg))}
+.switch.on{background:var(--accent)}
+.dp-d.on{background:var(--accent)}
+.sheet{background:var(--surface);border-color:var(--border)}
+.sheet-btn.ok{color:var(--accent)}
+.toast{background:var(--text);color:#0b0b0d;border-radius:10px;font-weight:600}
+
+/* Kalender */
+.cal{background:var(--surface);border-color:var(--border);border-radius:var(--radius)}
+.cal-day{background:var(--bg);border-radius:8px}
+.cal-day.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--bg))}
+.cal-day.today .n{background:var(--accent);color:#fff}
+.cal-bar{border-radius:5px;font-weight:600}
+.ev{background:var(--surface);border-color:var(--border);border-radius:var(--radius)}
+.ev:hover{background:var(--surface-2)}
+.empty,.empty-s{background:var(--surface);border-color:var(--border)}
+.tile.game .cover{aspect-ratio:auto;height:190px;object-position:center 35%}
+@media (max-width:640px){ .tile.game .cover{height:150px} }
