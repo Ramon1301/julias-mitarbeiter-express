@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c0a1d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -84,22 +84,24 @@ main{max-width:880px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-rig
 .brand-btn{background:none;border:0;padding:0;text-align:left;flex-wrap:nowrap;min-width:0;white-space:nowrap}
 .brand-btn .gig,.brand-btn .dash{flex:none}
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:32px}
-.tile{position:relative;border:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0)),var(--surface);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 30px -22px rgba(0,0,0,.9);border-radius:22px;padding:20px;text-align:left;display:flex;flex-direction:column;gap:14px;min-height:190px;transition:transform .15s,border-color .15s}
+.tile{position:relative;min-width:0;border:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0)),var(--surface);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 30px -22px rgba(0,0,0,.9);border-radius:22px;padding:20px;text-align:left;display:flex;flex-direction:column;gap:14px;min-height:190px;transition:transform .15s,border-color .15s}
 .tile .ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
 .tile h3{margin:0;font-size:20px;font-weight:800}
 .tile p{margin:2px 0 0;color:var(--muted);font-size:14px}
-.tile .nums{display:flex;gap:18px;margin-top:auto}
+.tile .nums{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:auto}
 .tile .nums b{display:block;font-size:24px;font-weight:800;line-height:1.1}
 .tile .nums span{font-size:12px;color:var(--muted);font-weight:600;display:inline-flex;align-items:center;gap:6px}
 .tile .nums span i{width:7px;height:7px;border-radius:50%;background:var(--dc)}
 .tile .go{position:absolute;right:20px;top:20px;color:var(--muted);font-weight:700;font-size:13px}
 .tile.game{grid-column:1/-1;padding:0;overflow:hidden;text-decoration:none;color:var(--text);gap:0}
 .tile.game .cover{display:block;width:100%;aspect-ratio:1200/624;object-fit:cover;border-bottom:1px solid var(--border)}
-.tile.game .game-info{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px 6px}
+.tile.game .game-info{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px 6px;min-width:0}
 .tile.game .go{position:static}
 .tile.game .next{padding:0 20px 18px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px}
 .tile.game .next b{color:var(--text)}
-.pnexts{display:flex;flex-direction:column;gap:7px;margin-top:auto}
+.tile>*{min-width:0;max-width:100%}
+.pnexts{display:flex;flex-direction:column;gap:7px;margin-top:auto;width:100%}
+.pnext>*{min-width:0}
 .tile .pnext-label{margin:0 0 2px;color:var(--muted);font-size:14px}
 .pnext{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}
 .pnext .avatar{width:22px;height:22px;font-size:10px;box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 60%,transparent)}
@@ -112,7 +114,9 @@ main{max-width:880px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-rig
 .tile .next i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
 .back{display:inline-flex;align-items:center;gap:6px;background:none;border:0;color:var(--muted);font-weight:700;font-size:14px;padding:0;margin-bottom:14px}
 .back:hover{color:var(--text)}
-@media (max-width:640px){ .tiles{grid-template-columns:1fr} .tile{min-height:0} }
+@media (max-width:640px){ .tiles{grid-template-columns:minmax(0,1fr)} .tile{min-height:0} }
+/* sehr schmale Darstellung (Safari-Seitenzoom, Display-Zoom, kleine iPhones) */
+@media (max-width:360px){ .tile{padding:16px} .tile .go{right:16px;top:16px} .tile .nums{gap:12px} .pnext .when{font-size:12px} }
 
 /* Kalender – schlicht, Farbe nur über die Personen */
 .cal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px;margin-bottom:22px}
@@ -427,7 +431,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261021-203217';
+const BUILD = '20261021-211837';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -503,6 +507,7 @@ async function pushRemote(d) {
    ===================================================================== */
 const KINDS = ['tasks', 'events'];
 let dirty = load('todo.dirty', null) || { tasks: {}, events: {}, tomb: {}, activity: {} };
+dirty.watch ||= {};                                         // frisch Gespeichertes noch 60 s beobachten
 const saveDirty = () => save('todo.dirty', dirty);
 const dirtyCount = () => KINDS.reduce((n, k) => n + Object.keys(dirty[k]).length, 0) + Object.keys(dirty.tomb).length + Object.keys(dirty.activity).length;
 const cKey = c => `${c.who}|${c.at}|${c.text}`;
@@ -536,21 +541,40 @@ function overlay(R) {
   return normalize(M);
 }
 // was der Server nachweislich enthält, ist erledigt
-function confirm(C) {
+function confirmSaved(C) {
   for (const k of KINDS) for (const [id, ent] of Object.entries(dirty[k])) {
     const cur = C[k].find(x => x.id === id);
-    if ((cur && (cur.updatedAt || 0) >= (ent.updatedAt || 0)) || (C.tomb && C.tomb[id] >= (ent.updatedAt || 0))) delete dirty[k][id];
+    if ((cur && (cur.updatedAt || 0) >= (ent.updatedAt || 0)) || (C.tomb && C.tomb[id] >= (ent.updatedAt || 0))) { dirty.watch[k + ':' + id] = { k, ent, until: Date.now() + 60000 }; delete dirty[k][id]; }
   }
-  for (const [id, at] of Object.entries(dirty.tomb)) if ((C.tomb && C.tomb[id] >= at) || !KINDS.some(k => C[k].some(x => x.id === id))) delete dirty.tomb[id];
+  for (const [id, at] of Object.entries(dirty.tomb)) if ((C.tomb && C.tomb[id] >= at) || !KINDS.some(k => C[k].some(x => x.id === id))) { dirty.watch['tomb:' + id] = { k: 'tomb', id, at, until: Date.now() + 60000 }; delete dirty.tomb[id]; }
   for (const id of Object.keys(dirty.activity)) if (C.activity.some(a => a.id === id) || dirty.activity[id].at < Date.now() - 3 * 864e5) delete dirty.activity[id];
+  saveDirty();
+}
+// Ein anderes Gerät kann kurz nach unserer Bestätigung einen älteren Stand speichern (der Speicher kennt kein
+// „nur wenn unverändert“). Darum frisch Gespeichertes eine Minute lang prüfen und bei Verlust wieder eintragen.
+function rewatch(R) {
+  const now = Date.now();
+  for (const [key, w] of Object.entries(dirty.watch)) {
+    if (w.until < now) { delete dirty.watch[key]; continue; }
+    if (w.k === 'tomb') {
+      if (!(R.tomb && R.tomb[w.id] >= w.at) && KINDS.some(k => R[k].some(x => x.id === w.id && (x.updatedAt || 0) <= w.at))) dirty.tomb[w.id] = w.at;
+      continue;
+    }
+    const cur = R[w.k].find(x => x.id === w.ent.id);
+    const deleted = R.tomb && R.tomb[w.ent.id] >= (w.ent.updatedAt || 0);
+    const mine = dirty[w.k][w.ent.id];                          // neuere eigene Änderung oder gelöscht → nicht zurückholen
+    if (mine && (mine.updatedAt || 0) >= (w.ent.updatedAt || 0) || dirty.tomb[w.ent.id]) continue;
+    if (!deleted && (!cur || (cur.updatedAt || 0) < (w.ent.updatedAt || 0))) dirty[w.k][w.ent.id] = w.ent;
+  }
   saveDirty();
 }
 function show(view) {
   const raw = JSON.stringify(view);
   if (raw === lastRaw) return;
-  lastRaw = raw; data = view; save('todo.cache', data); render();
+  lastRaw = raw; data = view; save('todo.cache', data); render(); lastChange = Date.now();
 }
 
+let lastChange = 0;
 let syncing = false, again = false, syncTimer = null, failDelay = 2000, offlineToast = false;
 async function sync() {
   if (syncing) { again = true; return; }
@@ -559,6 +583,7 @@ async function sync() {
     const R = await fetchRemote();
     // Schutz: plötzlich leerer Server-Stand, obwohl Daten da waren → Aussetzer, nichts überschreiben
     if (!hasContent(R) && hasContent(data) && !Object.keys(R.tomb || {}).length) throw new Error('leerer Stand');
+    rewatch(R);
     if (dirtyCount()) {
       setSync('busy');
       const M = overlay(R);
@@ -567,7 +592,7 @@ async function sync() {
       await pushRemote(M);
       await sleep(450);
       const C = await fetchRemote();
-      confirm(C);
+      confirmSaved(C);
       show(overlay(C));
       if (dirtyCount()) again = true;                           // noch nicht alles bestätigt → gleich nochmal
       else if (offlineToast) { toast('Alles gespeichert ✓'); offlineToast = false; }
@@ -1279,6 +1304,7 @@ function openEvent(id) {
   };
 }
 
+
 /* ===================== Konfetti ===================== */
 function confetti() {
   const cv = $('#confetti'), ctx = cv.getContext('2d');
@@ -1340,7 +1366,13 @@ fetch(STORE_URL + '-fotos?t=' + Date.now(), { cache: 'no-store' }).then(r => r.o
   if (!txt.trim()) return;
   PHOTOS = JSON.parse(txt); save('todo.photos', PHOTOS); render();
 }).catch(() => {});
-setInterval(() => { if (!document.hidden) sync(); }, POLL_MS);
+// Normal alle 5 s nachsehen; eine Minute nach jeder Änderung (eigene oder fremde) alle 1,5 s
+let lastPoll = 0;
+setInterval(() => {
+  if (document.hidden) return;
+  const busy = Object.keys(dirty.watch).length || Date.now() - lastChange < 60000;
+  if (busy || Date.now() - lastPoll >= POLL_MS) { lastPoll = Date.now(); sync(); }
+}, 1500);
 // sofort aktualisieren, wenn die Seite/App wieder in den Vordergrund kommt (auch als App auf dem iPhone-Homebildschirm)
 const wake = () => { if (document.hidden) return; failDelay = 2000; sync(); loadGameBoard(); checkVersion(); };
 document.addEventListener('visibilitychange', wake);
