@@ -187,6 +187,21 @@ main{max-width:880px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-rig
 .ev.declined .ev-tag{background:rgba(244,63,94,.16);color:#fb7185}
 .cal-bar.declined{opacity:.4}
 .inv-hint{margin:0;font-size:13px;font-weight:700;color:#d8b4fe}
+/* Code-Sperre */
+.pin-back{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));animation:fade .15s;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.pin-back .avatar{width:64px;height:64px;font-size:26px}
+.pin-back h2{margin:0;font-size:20px;font-weight:800}
+.pin-dots{display:flex;gap:16px;height:18px;margin:4px 0 10px}
+.pin-dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--muted);transition:background .1s,border-color .1s}
+.pin-dots i.on{background:var(--text);border-color:var(--text)}
+.pin-dots.bad{animation:pinShake .35s}
+.pin-dots.bad i{border-color:var(--p3)}
+@keyframes pinShake{20%{transform:translateX(-9px)}45%{transform:translateX(8px)}70%{transform:translateX(-5px)}90%{transform:translateX(3px)}}
+.pin-keys{display:grid;grid-template-columns:repeat(3,min(72px,22vw));gap:12px}
+.pin-keys button{aspect-ratio:1;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:26px;font-weight:600;-webkit-tap-highlight-color:transparent}
+.pin-keys button:active{background:var(--surface-2)}
+.pin-keys .pin-del{background:none;border:0;font-size:22px}
+.pin-other{background:none;border:0;color:var(--muted);font-weight:700;font-size:14px;padding:10px;margin-top:4px}
 .tp{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:11px 13px;text-align:left;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
 .tp.unset{color:var(--muted);font-weight:500}
 .ev-when{background:var(--bg);border:1px solid var(--border);border-radius:14px;overflow:hidden}
@@ -463,7 +478,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261027-194327';
+const BUILD = '20261101-224403';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -1449,11 +1464,61 @@ function confetti() {
   })();
 }
 
+/* ===================== Code-Sperre für einzelne Profile =====================
+   Sichtschutz gegen versehentliches Wechseln, kein echtes Schloss: die Seite hat keinen Server. */
+const PINS = { Ramon: { salt: 'e1a7389bb421fac7', hash: '3674576e92c6fe2e98792b142a645d27407937274b0d02a02766b74103093bb9' } };
+const PIN_IDLE = 5 * 60000;                                   // so lange bleibt ein Profil nach dem Weglegen offen
+let pinOpen = false;
+const pinValid = p => { const u = load('todo.unlock', null); return !PINS[p] || (!!u && u.who === p && Date.now() - u.at < PIN_IDLE); };
+const pinOk = async (p, code) => {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(PINS[p].salt + code));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('') === PINS[p].hash;
+};
+// Nur ein noch gültiges Entsperren verlängern, ein abgelaufenes nie wiederbeleben
+const pinSeen = () => { if (me && PINS[me] && !pinOpen && pinValid(me)) save('todo.unlock', { who: me, at: Date.now() }); };
+function askPin(p, onOk, onCancel, cancelLabel) {
+  pinOpen = true;
+  let code = '', busy = false;
+  const el = document.createElement('div');
+  el.className = 'pin-back'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Code eingeben');
+  el.innerHTML = `${avatar(p)}<h2>${esc(p)}</h2><div class="pin-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="pin-keys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-k="${n}">${n}</button>`).join('')}<span></span><button type="button" data-k="0">0</button><button type="button" class="pin-del" data-del aria-label="Löschen">⌫</button></div>
+    <button type="button" class="pin-other">${esc(cancelLabel)}</button>`;
+  const dots = el.querySelector('.pin-dots');
+  const paint = () => [...dots.children].forEach((d, i) => d.classList.toggle('on', i < code.length));
+  const close = () => { pinOpen = false; removeEventListener('keydown', onKey); el.remove(); };
+  const press = async k => {
+    if (busy || code.length >= 4) return;
+    code += k; dots.classList.remove('bad'); paint();
+    if (code.length < 4) return;
+    busy = true;
+    if (await pinOk(p, code)) { save('todo.unlock', { who: p, at: Date.now() }); close(); onOk(); return; }
+    navigator.vibrate?.(60); void dots.offsetWidth; dots.classList.add('bad');
+    setTimeout(() => { code = ''; busy = false; paint(); }, 350);
+  };
+  const onKey = e => {
+    if (/^[0-9]$/.test(e.key)) press(e.key);
+    else if (e.key === 'Backspace' && !busy) { code = code.slice(0, -1); paint(); }
+  };
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    const key = e.target.closest('[data-k]'); if (key) return void press(key.dataset.k);
+    if (e.target.closest('[data-del]')) { if (!busy) { code = code.slice(0, -1); paint(); } return; }
+    if (e.target.closest('.pin-other')) { close(); onCancel(); }
+  });
+  addEventListener('keydown', onKey);
+  document.body.appendChild(el);
+}
+function lockIfNeeded() {
+  if (!me || pinOpen || pinValid(me)) return;
+  askPin(me, () => {}, () => { me = null; save('todo.me', null); render(); }, 'Anderes Profil');
+}
+
 /* ===================== Events ===================== */
 document.addEventListener('click', e => {
   const el = e.target;
   const login = el.closest('[data-login]');
-  if (login) { me = login.dataset.login; save('todo.me', me); render(); return; }
+  if (login) { const p = login.dataset.login, enter = () => { me = p; save('todo.me', me); render(); }; if (PINS[p]) askPin(p, enter, () => {}, 'Abbrechen'); else enter(); return; }
   if (el.closest('[data-closebtn]') || el.matches('[data-close]')) { closeModal(); return; }
   const rs = el.closest('[data-rsvp]'); if (rs) { setRsvp(rs.dataset.rsvp, rs.dataset.s); return; }
   if (el.closest('[data-invites]')) { openInvites_(); return; }
@@ -1479,7 +1544,7 @@ function goTo(v) {
 }
 let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (view === 'cal') renderCal(); }, 150); });
 addEventListener('popstate', () => { view = history.state?.view || 'dash'; closeModal(); render(); });
-$('#meBtn').onclick = () => { me = null; save('todo.me', null); render(); };
+$('#meBtn').onclick = () => { me = null; save('todo.me', null); save('todo.unlock', null); render(); };
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   const sh = $('.sheet-back'); if (sh) { sh._commit(); return; } // erst die Uhrzeit-Auswahl schließen (Wert übernehmen)
@@ -1490,6 +1555,7 @@ document.addEventListener('keydown', e => {
 if (!STORE_KEY) { $('#locked').classList.remove('hidden'); throw new Error('kein Einladungslink'); }
 normalize(data);
 render();
+lockIfNeeded();
 pull();
 loadGameBoard();
 // Profilbilder einmal pro Besuch laden
@@ -1505,7 +1571,10 @@ setInterval(() => {
   if (busy || Date.now() - lastPoll >= POLL_MS) { lastPoll = Date.now(); sync(); }
 }, 1500);
 // sofort aktualisieren, wenn die Seite/App wieder in den Vordergrund kommt (auch als App auf dem iPhone-Homebildschirm)
-const wake = () => { if (document.hidden) return; failDelay = 2000; sync(); loadGameBoard(); checkVersion(); };
+const wake = () => { if (document.hidden) return; lockIfNeeded(); failDelay = 2000; sync(); loadGameBoard(); checkVersion(); };
+document.addEventListener('visibilitychange', () => { if (document.hidden) pinSeen(); });
+addEventListener('pagehide', pinSeen);
+setInterval(() => { if (!document.hidden) pinSeen(); }, 30000);
 document.addEventListener('visibilitychange', wake);
 addEventListener('focus', wake); addEventListener('pageshow', wake); addEventListener('online', wake);
 setInterval(() => { if (!document.hidden && view === 'dash') loadGameBoard(); }, 15000);
