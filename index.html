@@ -190,7 +190,10 @@ main{max-width:880px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-rig
 /* Durchsage */
 .ansage{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);animation:fade .35s;transition:opacity .25s;cursor:pointer}
 .ansage.out{opacity:0}
-.ansage-box{text-align:center;max-width:720px}
+.ansage-box{text-align:center;max-width:720px;position:relative;transition:opacity .8s}
+.ansage canvas{position:absolute;top:0;left:0;transition:opacity 1.2s}
+.ansage.rain .ansage-box{opacity:0}
+.ansage.rain.show .ansage-box{opacity:1}
 .ansage-box p{margin:0;font:800 clamp(26px,4.4vw,52px)/1.15 ui-monospace,Menlo,monospace;color:#ff3b5c;text-shadow:0 0 18px rgba(255,59,92,.7);animation:glitch 2.4s infinite}
 .ansage-emo{font-size:clamp(48px,8vw,96px);margin-top:18px;animation:pulse 1.2s infinite}
 .ansage-box img{max-width:min(320px,80vw);max-height:40vh;border-radius:16px;margin-top:18px}
@@ -487,7 +490,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261116-180643';
+const BUILD = '20261116-181129';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -1536,9 +1539,41 @@ function showAnsage() {
   save('todo.ansage', a.id);
   const el = document.createElement('div'); el.id = 'ansage'; el.className = 'ansage';
   el.innerHTML = `<div class="ansage-box"><p>${esc(a.text || '')}</p>${a.emoji ? `<div class="ansage-emo">${esc(a.emoji)}</div>` : ''}${a.img ? `<img src="${esc(a.img)}" alt="">` : ''}</div>`;
-  const close = () => { removeEventListener('keydown', close); el.classList.add('out'); setTimeout(() => el.remove(), 250); };
-  setTimeout(() => { el.addEventListener('click', close); addEventListener('keydown', close); }, 1500);
+  let raf = 0;
+  const close = () => { removeEventListener('keydown', close); cancelAnimationFrame(raf); el.classList.add('out'); setTimeout(() => el.remove(), 250); };
+  setTimeout(() => { el.addEventListener('click', close); addEventListener('keydown', close); }, a.rain ? 3000 : 1500);
   document.body.appendChild(el);
+  if (a.rain) raf = codeRain(el, a.rain, id => raf = id);
+}
+// grüner Binär-Code, der herunterläuft; nach `secs` Sekunden blendet er aus, der Text bleibt
+function codeRain(el, secs, setRaf) {
+  el.classList.add('rain');
+  const cv = document.createElement('canvas'); el.prepend(cv);
+  const r = el.getBoundingClientRect(), w = r.width, h = r.height, dpr = Math.min(devicePixelRatio || 1, 2);   // ganze Overlay-Fläche
+  cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const F = 16, cols = Math.ceil(w / F), y = Array.from({ length: cols }, () => Math.random() * -h / F);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+  const t0 = performance.now(); let last = 0;
+  setTimeout(() => el.classList.add('show'), 2000);
+  setTimeout(() => { cv.style.opacity = '0'; }, secs * 1000);
+  const tick = t => {
+    if (t - last > 50) {                                        // ~20 Bilder/s – wirkt wie im Film und schont den Akku
+      last = t;
+      ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.fillRect(0, 0, w, h);
+      ctx.font = `700 ${F}px ui-monospace,Menlo,monospace`;
+      for (let i = 0; i < cols; i++) {
+        const ch = Math.random() < .5 ? '0' : '1';
+        ctx.fillStyle = Math.random() < .04 ? '#d4ffd9' : '#22ff66';
+        ctx.fillText(ch, i * F, y[i] * F);
+        if (y[i] * F > h && Math.random() > .975) y[i] = 0;
+        y[i]++;
+      }
+    }
+    if (t - t0 < secs * 1000 + 1300) setRaf(requestAnimationFrame(tick));
+    else cv.remove();
+  };
+  return requestAnimationFrame(tick);
 }
 
 /* ===================== Events ===================== */
