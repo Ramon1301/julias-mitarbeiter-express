@@ -187,6 +187,15 @@ main{max-width:880px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-rig
 .ev.declined .ev-tag{background:rgba(244,63,94,.16);color:#fb7185}
 .cal-bar.declined{opacity:.4}
 .inv-hint{margin:0;font-size:13px;font-weight:700;color:#d8b4fe}
+/* Durchsage */
+.ansage{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);animation:fade .35s;transition:opacity .25s;cursor:pointer}
+.ansage.out{opacity:0}
+.ansage-box{text-align:center;max-width:720px}
+.ansage-box p{margin:0;font:800 clamp(26px,4.4vw,52px)/1.15 ui-monospace,Menlo,monospace;color:#ff3b5c;text-shadow:0 0 18px rgba(255,59,92,.7);animation:glitch 2.4s infinite}
+.ansage-emo{font-size:clamp(48px,8vw,96px);margin-top:18px;animation:pulse 1.2s infinite}
+.ansage-box img{max-width:min(320px,80vw);max-height:40vh;border-radius:16px;margin-top:18px}
+@keyframes glitch{0%,88%,100%{transform:none}90%{transform:translate(-3px,1px) skewX(-6deg)}93%{transform:translate(3px,-1px)}96%{transform:translate(-1px,0) skewX(4deg)}}
+@keyframes pulse{50%{transform:scale(1.12)}}
 /* Code-Sperre */
 .pin-back{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));animation:fade .15s;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .pin-back .avatar{width:64px;height:64px;font-size:26px}
@@ -478,7 +487,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261101-224403';
+const BUILD = '20261116-180643';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -785,7 +794,7 @@ function render() {
   $('#calView').classList.toggle('hidden', view !== 'cal');
   $('#fab').classList.toggle('hidden', view !== 'todo');
   $('#fab').setAttribute('aria-label', view === 'cal' ? 'Neuer Termin' : 'Neue Aufgabe');
-  if (view === 'cal') renderCal();
+  if (view === 'cal') { renderCal(); showAnsage(); }
   if (invitesOpen) drawInvites();
 
   const doingAll = open.filter(t => t.status === 'doing');
@@ -1514,6 +1523,24 @@ function lockIfNeeded() {
   askPin(me, () => {}, () => { me = null; save('todo.me', null); render(); }, 'Anderes Profil');
 }
 
+/* ===================== Durchsagen (ausgelöst über <key>-ansage) ===================== */
+let ansage = null;
+const isMac = /Mac/.test(navigator.platform) && navigator.maxTouchPoints <= 1 && !/iPhone|iPad|iPod|Android|Mobile/.test(navigator.userAgent);   // iPads melden sich auch als Mac, haben aber Touch
+async function checkAnsage() {
+  try { const t = await (await fetch(STORE_URL + '-ansage?t=' + Date.now(), { cache: 'no-store' })).text(); ansage = t.trim() ? JSON.parse(t) : null; showAnsage(); } catch {}
+}
+function showAnsage() {
+  const a = ansage;
+  if (!a || !a.id || document.hidden || view !== 'cal' || !me || pinOpen || $('#ansage')) return;
+  if (Date.now() > (a.until || 0) || (a.mac && !isMac) || load('todo.ansage', null) === a.id) return;
+  save('todo.ansage', a.id);
+  const el = document.createElement('div'); el.id = 'ansage'; el.className = 'ansage';
+  el.innerHTML = `<div class="ansage-box"><p>${esc(a.text || '')}</p>${a.emoji ? `<div class="ansage-emo">${esc(a.emoji)}</div>` : ''}${a.img ? `<img src="${esc(a.img)}" alt="">` : ''}</div>`;
+  const close = () => { removeEventListener('keydown', close); el.classList.add('out'); setTimeout(() => el.remove(), 250); };
+  setTimeout(() => { el.addEventListener('click', close); addEventListener('keydown', close); }, 1500);
+  document.body.appendChild(el);
+}
+
 /* ===================== Events ===================== */
 document.addEventListener('click', e => {
   const el = e.target;
@@ -1568,10 +1595,10 @@ let lastPoll = 0;
 setInterval(() => {
   if (document.hidden) return;
   const busy = Object.keys(dirty.watch).length || Date.now() - lastChange < 60000;
-  if (busy || Date.now() - lastPoll >= POLL_MS) { lastPoll = Date.now(); sync(); }
+  if (busy || Date.now() - lastPoll >= POLL_MS) { lastPoll = Date.now(); sync(); checkAnsage(); }
 }, 1500);
 // sofort aktualisieren, wenn die Seite/App wieder in den Vordergrund kommt (auch als App auf dem iPhone-Homebildschirm)
-const wake = () => { if (document.hidden) return; lockIfNeeded(); failDelay = 2000; sync(); loadGameBoard(); checkVersion(); };
+const wake = () => { if (document.hidden) return; lockIfNeeded(); failDelay = 2000; sync(); checkAnsage(); loadGameBoard(); checkVersion(); };
 document.addEventListener('visibilitychange', () => { if (document.hidden) pinSeen(); });
 addEventListener('pagehide', pinSeen);
 setInterval(() => { if (!document.hidden) pinSeen(); }, 30000);
