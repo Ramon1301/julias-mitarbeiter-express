@@ -93,12 +93,6 @@ main{max-width:880px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-rig
 .tile .nums span{font-size:12px;color:var(--muted);font-weight:600;display:inline-flex;align-items:center;gap:6px}
 .tile .nums span i{width:7px;height:7px;border-radius:50%;background:var(--dc)}
 .tile .go{position:absolute;right:20px;top:20px;color:var(--muted);font-weight:700;font-size:13px}
-.tile.game{grid-column:1/-1;padding:0;overflow:hidden;text-decoration:none;color:var(--text);gap:0}
-.tile.game .cover{display:block;width:100%;aspect-ratio:1200/624;object-fit:cover;border-bottom:1px solid var(--border)}
-.tile.game .game-info{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px 6px;min-width:0}
-.tile.game .go{position:static}
-.tile.game .next{padding:0 20px 18px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px}
-.tile.game .next b{color:var(--text)}
 .tile>*{min-width:0;max-width:100%}
 .pnexts{display:flex;flex-direction:column;gap:7px;margin-top:auto;width:100%}
 .pnext>*{min-width:0}
@@ -269,6 +263,34 @@ main{max-width:880px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-rig
 }
 
 /* Personen = Aufgabe anlegen */
+.today{position:relative;margin:0 0 26px;padding:20px 20px 16px;border-radius:22px;border:1px solid var(--border);overflow:hidden;
+  background:radial-gradient(420px 160px at 0% 0%,rgba(168,85,247,.20),transparent 70%),radial-gradient(360px 160px at 100% 0%,rgba(56,189,248,.12),transparent 70%),var(--surface);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 18px 34px -24px rgba(0,0,0,.9)}
+.td-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.td-head h3{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
+.td-head span{color:var(--muted);font-size:13px;font-weight:600}
+.td-list{display:flex;flex-direction:column;gap:6px}
+.td-ev,.td-task{display:flex;align-items:center;gap:12px;width:100%;min-width:0;text-align:left;border:0;background:rgba(255,255,255,.035);border-radius:14px;padding:10px 12px;transition:background .15s}
+.td-ev:hover,.td-task:hover{background:rgba(255,255,255,.07)}
+.td-ev.past{opacity:.5}
+.td-bar{align-self:stretch;width:4px;border-radius:4px;flex:none}
+.td-time{flex:none;width:76px;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;line-height:1.2}
+.td-time small{display:block;font-weight:600;font-size:12px;color:var(--muted)}
+.td-what{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.td-what b{font-size:15px;overflow-wrap:anywhere}
+.td-loc,.td-with,.td-due,.td-late{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px;min-width:0;overflow-wrap:anywhere}
+.td-loc svg{flex:none}
+.td-late{color:#fb7185;font-weight:600}
+.td-due{color:#facc15;font-weight:600}
+.td-what .ev-tag{align-self:flex-start}
+.td-check{flex:none;width:20px;height:20px;border-radius:7px;border:2px solid var(--border)}
+.td-prio{flex:none;font-size:16px}
+.td-pill{flex:none;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(250,204,21,.14);color:#facc15;border:1px solid rgba(250,204,21,.3)}
+.td-pill.tmw{background:rgba(167,139,250,.14);color:#c4b5fd;border-color:rgba(167,139,250,.3)}
+.td-sep{display:flex;align-items:center;gap:10px;margin:14px 0 10px;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.td-sep::before,.td-sep::after{content:"";height:1px;background:var(--border);flex:1}
+.td-sep::before{flex:0 0 14px}
+.td-empty{margin:2px 2px 4px;color:var(--muted);font-size:14px}
 .section-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px}
 .team{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:28px}
 .team-card{border:0;border-radius:20px;padding:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 12px 26px -18px var(--c);text-align:left;color:#0c0a1d;background:linear-gradient(145deg,var(--c),var(--c2));display:flex;flex-direction:column;gap:12px;transition:transform .15s;position:relative;overflow:hidden}
@@ -441,6 +463,7 @@ canvas#confetti{position:fixed;top:0;left:0;width:100%;height:100%;pointer-event
     <!-- Dashboard -->
     <div id="dashView">
       <div class="hello"><h2 id="helloTitle"></h2><p id="dashSub"></p></div>
+      <section class="today" id="today"></section>
       <p class="section-label">Bereiche</p>
       <div class="tiles" id="tiles"></div>
     </div>
@@ -491,7 +514,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261116-191902';
+const BUILD = '20261118-223556';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -805,6 +828,7 @@ function render() {
   $('#dashSub').textContent = mine.length
     ? `Du hast ${mine.length} offene Aufgabe${mine.length > 1 ? 'n' : ''}${hot ? ` – ${hot}× sehr wichtig 🔥` : '.'}`
     : 'Bei dir ist gerade alles erledigt. ✨';
+  $('#today').innerHTML = todayCard();
   // Bereiche – hier können später weitere Kacheln (z. B. Kalender) dazukommen
   $('#tiles').innerHTML = `
     <button class="tile" data-go="todo">
@@ -817,8 +841,7 @@ function render() {
         <div><b>${mine.length}</b><span style="--dc:var(--c)" data-p="${esc(me)}"><i></i>für dich</span></div>
       </div>
     </button>
-    ${calTile()}
-    ${gameTile()}`;
+    ${calTile()}`;
 
   if (view !== 'todo') return;
   $('#helloSub').textContent = mine.length
@@ -1083,21 +1106,47 @@ function rangeText(e) {
 }
 const pinSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
 
-// Spiel-Kachel: Cover + wer gerade im Highscore vorne liegt
-let gameBoard = {};
-async function loadGameBoard() {
-  try { const t = await (await fetch(STORE_URL + '-spiel?t=' + Date.now(), { cache: 'no-store' })).text(); gameBoard = t.trim() ? JSON.parse(t) : {}; if (view === 'dash') render(); } catch {}
-}
-function gameTile() {
-  const lead = Object.entries(gameBoard).sort((a, b) => b[1].best - a[1].best)[0];
-  return `<a class="tile game" href="schlechte-zeiten.html?v=${Date.now()}">
-      <img class="cover" src="assets/johann-wut.jpg" alt="Johann weint auf der Bühne, das Publikum buht">
-      <div class="game-info">
-        <div><h3>Für die schlechten Zeiten</h3><p>Bewirf Johann mit Tomaten, Eiern, Torten & Melonen</p></div>
-        <span class="go">Spielen →</span>
-      </div>
-      ${lead ? `<div class="next" data-p="${esc(lead[0])}">${avatar(lead[0])}<span>🏆 <b>${esc(lead[0])}</b> führt mit ${lead[1].best} Punkten</span></div>` : '<div class="next"><span>🏆 Noch kein Highscore – wer fängt an?</span></div>'}
-    </a>`;
+// „Heute steht an“: eigene Termine von heute + eigene To-dos, die heute oder morgen fällig sind
+function todayCard() {
+  const t = todayStr(), now = nowHM();
+  const evs = data.events.filter(e => e.date <= t && t <= e.endDate && e.people.includes(me) && answer(e, me) !== 'no').sort(evSort);
+  const tasks = data.tasks.filter(x => isMine(x) && !doneFor(x) && x.due && [0, 1].includes(dueInfo(x).days))
+    .sort((a, b) => dueInfo(a).days - dueInfo(b).days || b.prio - a.prio);
+  // Zeit-Spalte: groß der Beginn, klein darunter das Ende
+  const when = e => {
+    if (multiDay(e)) {
+      if (t === e.date) return e.start ? [e.start, 'mehrtägig'] : ['Ganztägig', ''];
+      if (t === e.endDate && e.end) return ['bis', e.end];
+      return ['Ganztägig', ''];
+    }
+    return e.start ? [e.start, e.end ? 'bis ' + e.end : ''] : ['Ganztägig', ''];
+  };
+  const past = e => e.endDate === t && !!e.end && e.end < now;
+  const evHtml = evs.map(e => {
+    const others = e.people.filter(p => p !== me);
+    return `<button class="td-ev ${past(e) ? 'past' : ''}" data-ev="${e.id}">
+      <span class="td-bar" style="background:${stripes(e.people)}"></span>
+      <span class="td-time">${esc(when(e)[0])}${when(e)[1] ? `<small>${esc(when(e)[1])}</small>` : ''}</span>
+      <span class="td-what"><b>${esc(e.title)}</b>
+        ${e.location ? `<span class="td-loc">${pinSvg}${esc(e.location)}</span>` : ''}
+        ${others.length ? `<span class="td-with">mit ${esc(names(others))}</span>` : ''}
+        ${!answer(e, me) ? '<em class="ev-tag">Antwort offen</em>' : ''}</span>
+    </button>`;
+  }).join('');
+  const taskHtml = tasks.map(x => {
+    const tmw = dueInfo(x).days === 1;
+    return `<button class="td-task" data-comments-open="${x.id}">
+      <span class="td-check"></span>
+      <span class="td-what"><b>${esc(x.title)}</b>${x.assignees.length > 1 ? `<span class="td-with">mit ${esc(names(x.assignees.filter(p => p !== me)))}</span>` : ''}</span>
+      <span class="td-prio" title="${PRIOS[x.prio]?.label || ''}">${PRIOS[x.prio]?.emo || ''}</span>
+      <span class="td-pill ${tmw ? 'tmw' : ''}">${tmw ? 'Morgen' : 'Heute'}</span>
+    </button>`;
+  }).join('');
+  const date = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+  return `<div class="td-head"><h3>${{ Julia: 'Hallo Chefin, heute steht an', Joris: 'Hallo mein Butschi, heute steht an' }[me] || 'Heute steht an'}</h3><span>${date}</span></div>
+    <div class="td-list">${evHtml || '<p class="td-empty">Heute keine Termine 🌤️</p>'}</div>
+    <div class="td-sep"><span>To-dos bis morgen</span></div>
+    <div class="td-list">${taskHtml || '<p class="td-empty">Heute und morgen nichts fällig ✨</p>'}</div>`;
 }
 
 function calTile() {
@@ -1461,7 +1510,6 @@ function setRsvp(id, s) {
   if (invitesOpen) drawInvites();
 }
 
-
 /* ===================== Konfetti ===================== */
 function confetti() {
   const cv = $('#confetti'), ctx = cv.getContext('2d');
@@ -1630,6 +1678,7 @@ document.addEventListener('click', e => {
   const cm = el.closest('[data-comments]'); if (cm) { openDetail(cm.dataset.comments); setTimeout(() => { const i = $('#c-text'); if (i) { i.scrollIntoView({ block: 'center', behavior: 'smooth' }); i.focus({ preventScroll: true }); } }, 80); return; }
   const adv = el.closest('[data-advance]'); if (adv && !adv.id) { advance(adv.dataset.advance); return; }
   const tb = el.closest('[data-tab]'); if (tb) { tab = tb.dataset.tab; save('todo.tab', tab); render(); return; }
+  const tdT = el.closest('[data-comments-open]'); if (tdT) { openDetail(tdT.dataset.commentsOpen); return; }
   const card = el.closest('.task[data-id]'); if (card) { openDetail(card.dataset.id); return; }
 });
 $('#fab').onclick = () => view === 'cal' ? openEventEditor() : openEditor();
@@ -1639,7 +1688,6 @@ function goTo(v) {
   if (v !== 'dash') history.pushState({ view: v }, '');
   else if (history.state?.view) { history.back(); return; }
   view = v; closeModal(); render(); scrollTo(0, 0);
-  if (v === 'dash') loadGameBoard();
 }
 let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (view === 'cal') renderCal(); }, 150); });
 addEventListener('popstate', () => { view = history.state?.view || 'dash'; closeModal(); render(); });
@@ -1656,7 +1704,6 @@ normalize(data);
 render();
 lockIfNeeded();
 pull();
-loadGameBoard();
 // Profilbilder einmal pro Besuch laden
 fetch(STORE_URL + '-fotos?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(txt => {
   if (!txt.trim()) return;
@@ -1670,13 +1717,12 @@ setInterval(() => {
   if (busy || Date.now() - lastPoll >= POLL_MS) { lastPoll = Date.now(); sync(); checkAnsage(); }
 }, 1500);
 // sofort aktualisieren, wenn die Seite/App wieder in den Vordergrund kommt (auch als App auf dem iPhone-Homebildschirm)
-const wake = () => { if (document.hidden) return; lockIfNeeded(); failDelay = 2000; sync(); checkAnsage(); loadGameBoard(); checkVersion(); };
+const wake = () => { if (document.hidden) return; lockIfNeeded(); failDelay = 2000; sync(); checkAnsage(); checkVersion(); };
 document.addEventListener('visibilitychange', () => { if (document.hidden) pinSeen(); });
 addEventListener('pagehide', pinSeen);
 setInterval(() => { if (!document.hidden) pinSeen(); }, 30000);
 document.addEventListener('visibilitychange', wake);
 addEventListener('focus', wake); addEventListener('pageshow', wake); addEventListener('online', wake);
-setInterval(() => { if (!document.hidden && view === 'dash') loadGameBoard(); }, 15000);
 // Neue Version der Website online? → automatisch neu laden (nur wenn gerade nichts offen ist).
 // BUILD wird bei jedem Hochladen neu gesetzt; geladen wird dann mit ?v=…, damit kein alter Zwischenspeicher greift.
 async function checkVersion() {

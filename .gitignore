@@ -2,3 +2,7 @@
 img/
 .DS_Store
 tests/
+widget-vorschau.png
+push/topics.json
+push/vapid.json
+push/node_modules/

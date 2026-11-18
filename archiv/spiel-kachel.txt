@@ -1,0 +1,30 @@
+Spiel-Kachel aus index.html (entfernt 2026-11-18).
+Zum Wiederherstellen: CSS in den <style>-Block, JS vor calTile(), ${gameTile()} nach ${calTile()} in render(), und loadGameBoard() wieder aufrufen (Start, wake, goTo('dash'), 15-s-Intervall).
+Das Spiel selbst bleibt unter schlechte-zeiten.html erreichbar, Highscores im Speicher -spiel.
+
+/* CSS */
+.tile.game{grid-column:1/-1;padding:0;overflow:hidden;text-decoration:none;color:var(--text);gap:0}
+.tile.game .cover{display:block;width:100%;aspect-ratio:1200/624;object-fit:cover;border-bottom:1px solid var(--border)}
+.tile.game .game-info{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px 6px;min-width:0}
+.tile.game .go{position:static}
+.tile.game .next{padding:0 20px 18px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.tile.game .next b{color:var(--text)}
+
+/* JS */
+// Spiel-Kachel: Cover + wer gerade im Highscore vorne liegt
+let gameBoard = {};
+async function loadGameBoard() {
+  try { const t = await (await fetch(STORE_URL + '-spiel?t=' + Date.now(), { cache: 'no-store' })).text(); gameBoard = t.trim() ? JSON.parse(t) : {}; if (view === 'dash') render(); } catch {}
+}
+function gameTile() {
+  const lead = Object.entries(gameBoard).sort((a, b) => b[1].best - a[1].best)[0];
+  return `<a class="tile game" href="schlechte-zeiten.html?v=${Date.now()}">
+      <img class="cover" src="assets/johann-wut.jpg" alt="Johann weint auf der Bühne, das Publikum buht">
+      <div class="game-info">
+        <div><h3>Für die schlechten Zeiten</h3><p>Bewirf Johann mit Tomaten, Eiern, Torten & Melonen</p></div>
+        <span class="go">Spielen →</span>
+      </div>
+      ${lead ? `<div class="next" data-p="${esc(lead[0])}">${avatar(lead[0])}<span>🏆 <b>${esc(lead[0])}</b> führt mit ${lead[1].best} Punkten</span></div>` : '<div class="next"><span>🏆 Noch kein Highscore – wer fängt an?</span></div>'}
+    </a>`;
+}
+
