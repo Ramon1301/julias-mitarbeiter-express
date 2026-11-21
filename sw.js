@@ -7,8 +7,8 @@ self.addEventListener('push', e => {
   try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(d.title || 'GIG Express', {
     body: d.body || '',
-    icon: 'icons/icon-192.png',
-    badge: 'icons/icon-192.png',
+    icon: 'icons/app-192.png',
+    badge: 'icons/app-192.png',
     tag: d.tag || 'morgen',          // neue Morgen-Nachricht ersetzt die alte
     data: { url: d.url || self.registration.scope },
   }));
