@@ -29,7 +29,8 @@ function message(data, me, now) {
   let body = !evs.length && !heute ? 'Heute steht nichts an – genieß den Tag ✨'
     : `Du hast heute ${evs.length ? n(evs.length, 'Termin', 'Termine') : 'keine Termine'} und ${heute ? n(heute, 'To-do', 'To-dos') : 'keine To-dos'} zu erledigen.`;
   if (morgen) body += ` (+${morgen} bis morgen)`;
-  return { title: GREET[me] || 'Guten Morgen, ' + me, body, tag: 'morgen-' + t };
+  // Titel: App-Name, darunter Gruß + Kurzinfo
+  return { title: 'GIG Mitarbeiter Express', body: `${GREET[me] || 'Guten Morgen, ' + me}! ${body}`, tag: 'morgen-' + t };
 }
 
 async function get(url) { const r = await fetch(url + '?t=' + Date.now()); const s = await r.text(); return s.trim() ? JSON.parse(s) : {}; }
