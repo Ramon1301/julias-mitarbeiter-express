@@ -8,6 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="GIG Express">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <title>Julias Mitarbeiter Express – GIG</title>
 <meta name="description" content="Gemeinsame Aufgabenliste von Julia, Joris und Ramon">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23a855f7'/><stop offset='1' stop-color='%23f97316'/></linearGradient></defs><rect width='100' height='100' rx='26' fill='url(%23g)'/><text x='50' y='68' font-size='52' text-anchor='middle'>🚀</text></svg>">
@@ -263,6 +265,15 @@ main{max-width:880px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-rig
 }
 
 /* Personen = Aufgabe anlegen */
+.push-ask{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 12px 12px 14px;border-radius:18px;border:1px solid rgba(192,132,252,.35);
+  background:linear-gradient(135deg,rgba(168,85,247,.22),rgba(249,115,22,.12)),var(--surface)}
+.pa-ico{flex:none;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);color:#f0abfc}
+.pa-txt{display:flex;flex-direction:column;min-width:0;flex:1}
+.pa-txt b{font-size:14px}
+.pa-txt span{font-size:12.5px;color:var(--muted)}
+.pa-btn{flex:none;border:0;border-radius:999px;padding:8px 16px;font-weight:800;font-size:14px;color:#fff;background:linear-gradient(135deg,#a855f7,#ec4899)}
+.pa-btn:disabled{opacity:.6}
+.pa-x{flex:none;border:0;background:none;color:var(--muted);padding:4px;display:flex}
 .today{position:relative;margin:0 0 26px;padding:20px 20px 16px;border-radius:22px;border:1px solid var(--border);overflow:hidden;
   background:radial-gradient(420px 160px at 0% 0%,rgba(168,85,247,.20),transparent 70%),radial-gradient(360px 160px at 100% 0%,rgba(56,189,248,.12),transparent 70%),var(--surface);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 18px 34px -24px rgba(0,0,0,.9)}
@@ -463,6 +474,7 @@ canvas#confetti{position:fixed;top:0;left:0;width:100%;height:100%;pointer-event
     <!-- Dashboard -->
     <div id="dashView">
       <div class="hello"><h2 id="helloTitle"></h2><p id="dashSub"></p></div>
+      <div id="pushAsk"></div>
       <section class="today" id="today"></section>
       <p class="section-label">Bereiche</p>
       <div class="tiles" id="tiles"></div>
@@ -514,7 +526,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261118-223556';
+const BUILD = '20261121-105328';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -829,6 +841,7 @@ function render() {
     ? `Du hast ${mine.length} offene Aufgabe${mine.length > 1 ? 'n' : ''}${hot ? ` – ${hot}× sehr wichtig 🔥` : '.'}`
     : 'Bei dir ist gerade alles erledigt. ✨';
   $('#today').innerHTML = todayCard();
+  $('#pushAsk').innerHTML = pushAskHtml();
   // Bereiche – hier können später weitere Kacheln (z. B. Kalender) dazukommen
   $('#tiles').innerHTML = `
     <button class="tile" data-go="todo">
@@ -1669,6 +1682,8 @@ document.addEventListener('click', e => {
   if (el.closest('[data-closebtn]') || el.matches('[data-close]')) { closeModal(); return; }
   const rs = el.closest('[data-rsvp]'); if (rs) { setRsvp(rs.dataset.rsvp, rs.dataset.s); return; }
   if (el.closest('[data-invites]')) { openInvites_(); return; }
+  const po = el.closest('[data-push-on]'); if (po) { pushOn(po); return; }
+  if (el.closest('[data-push-hide]')) { save('todo.pushHide', me); render(); return; }
   const go = el.closest('[data-go]'); if (go) { goTo(go.dataset.go); return; }
   const dayBtn = el.closest('[data-day]'); if (dayBtn) { calSel = dayBtn.dataset.day; const d = new Date(calSel + 'T12:00:00'); if (d.getMonth() !== calMonth.getMonth()) { calMonth = d; calMonth.setDate(1); } render(); return; }
   const cn = el.closest('[data-calnav]'); if (cn) { const k = +cn.dataset.calnav; if (k) calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + k, 1); else { calMonth = new Date(); calMonth.setDate(1); calSel = todayStr(); } render(); return; }
@@ -1683,6 +1698,51 @@ document.addEventListener('click', e => {
 });
 $('#fab').onclick = () => view === 'cal' ? openEventEditor() : openEditor();
 // Zurück-Taste im Browser/Handy führt aufs Dashboard
+/* ===================== Morgen-Nachricht (Web-Push) ===================== */
+// Nur wenn die Seite als App-Symbol auf dem Homescreen liegt (iPhone: iOS 16.4+). Dann erscheint oben „Erlauben“.
+// Die Anmeldung pro Gerät landet in <key>-push; verschickt wird um 8 Uhr (push/morgen-push.js), nur über Apples/Googles Push-Dienst.
+const VAPID_PUBLIC = 'BIEZ18vqr7PORx-DXil7WZDIZSkI8ufVEjly79cqBOl2Fy1VSg6zU7RejP02nOsvtKdbJkRM6H--6YQ6T30U8bk';
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+let swReg = null;
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(r => { swReg = r; }).catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => { if (e.data?.goto) goTo(e.data.goto); });
+}
+const bellSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+function pushAskHtml() {
+  // nur in der Homescreen-App, nur solange noch nicht erlaubt
+  if (!me || !standalone() || !pushSupported() || load('todo.pushHide', null) === me) return '';
+  if (Notification.permission === 'denied') return '';
+  if (Notification.permission === 'granted' && load('todo.push', null) === me) return '';
+  return `<div class="push-ask"><span class="pa-ico">${bellSvg}</span>
+    <span class="pa-txt"><b>Morgens um 8 deine Übersicht</b><span>Kurze Nachricht mit deinen Terminen und To-dos</span></span>
+    <button class="pa-btn" data-push-on>Erlauben</button><button class="pa-x" data-push-hide aria-label="Ausblenden">${xSvg}</button></div>`;
+}
+const b64u = s => { const b = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+async function saveSub(sub) {
+  const url = STORE_URL + '-push';
+  let d = {};
+  try { const t = await (await fetch(url + '?t=' + Date.now(), { cache: 'no-store' })).text(); d = t.trim() ? JSON.parse(t) : {}; } catch {}
+  for (const p of Object.keys(d)) if (Array.isArray(d[p])) d[p] = d[p].filter(x => x.endpoint !== sub.endpoint);   // Gerät gehört nur einer Person
+  if (!Array.isArray(d[me])) d[me] = [];
+  d[me].push({ endpoint: sub.endpoint, keys: sub.keys, at: Date.now() });
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(d) });
+  if (!r.ok) throw new Error('save ' + r.status);
+}
+async function pushOn(btn) {
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const perm = await Notification.requestPermission();   // muss direkt im Tipp passieren (iOS)
+    if (perm !== 'granted') { toast('Nachrichten wurden nicht erlaubt'); render(); return; }
+    const reg = swReg || await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) });
+    await saveSub(sub.toJSON());
+    save('todo.push', me); toast('🔔 Ab jetzt kommt morgens um 8 deine Übersicht'); render();
+  } catch (e) { console.warn(e); toast('Hat nicht geklappt: ' + (e.message || e)); btn.disabled = false; btn.textContent = 'Erlauben'; }
+}
+
 function goTo(v) {
   if (v === view) return;
   if (v !== 'dash') history.pushState({ view: v }, '');
