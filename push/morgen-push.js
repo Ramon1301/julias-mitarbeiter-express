@@ -52,7 +52,10 @@ const post = (url, d) => fetch(url, { method: 'POST', headers: { 'Content-Type':
     const list = Array.isArray(subs[p]) ? subs[p] : [];
     if (DRY) { console.log(`${p}: ${list.length} Gerät(e) – ${msg.title} | ${msg.body}`); continue; }
     for (const s of list) {
-      try { const r = await webpush.sendNotification(s, JSON.stringify(msg), { TTL: 4 * 3600, urgency: 'high' }); console.log(`${p}: ok ${r.statusCode}`); }
+      // bei Netzwerk-Aussetzern (z. B. „socket hang up“) bis zu 3 Versuche
+      const send = async (n = 0) => { try { return await webpush.sendNotification(s, JSON.stringify(msg), { TTL: 4 * 3600, urgency: 'high' }); }
+        catch (e) { if (!e.statusCode && n < 2) { await new Promise(r => setTimeout(r, 2000)); return send(n + 1); } throw e; } };
+      try { const r = await send(); console.log(`${p}: ok ${r.statusCode}`); }
       catch (e) {
         console.log(`${p}: Fehler ${e.statusCode || e.message}`);   // Inhalte nie ins (öffentliche) Log schreiben
         if (e.statusCode === 404 || e.statusCode === 410) dead.add(s.endpoint);   // Gerät hat sich abgemeldet
