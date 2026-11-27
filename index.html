@@ -536,7 +536,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261127-213940';
+const BUILD = '20261127-214608';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -851,7 +851,6 @@ function render() {
     ? `Du hast ${mine.length} offene Aufgabe${mine.length > 1 ? 'n' : ''}${hot ? ` – ${hot}× sehr wichtig 🔥` : '.'}`
     : 'Bei dir ist gerade alles erledigt. ✨';
   $('#today').innerHTML = todayCard();
-  { const v = document.querySelector('.ad-strip video'); if (v) { if (view === 'dash' && !document.hidden) v.play?.().catch(() => {}); else v.pause(); } }
   $('#pushAsk').innerHTML = pushAskHtml();
   // Bereiche – hier können später weitere Kacheln (z. B. Kalender) dazukommen
   $('#tiles').innerHTML = `
@@ -1172,6 +1171,20 @@ function todayCard() {
     <div class="td-sep"><span>To-dos bis morgen</span></div>
     <div class="td-list">${taskHtml || '<p class="td-empty">Heute und morgen nichts fällig ✨</p>'}</div>`;
 }
+
+// Werbeleiste: immer stumm, läuft durchgehend. Stoppt iOS das Video (Stromsparmodus, App im Hintergrund,
+// Bildschirm aus), wird es beim Zurückkommen bzw. beim nächsten Tippen sofort wieder gestartet.
+(function adVideo() {
+  const v = document.querySelector('.ad-strip video'); if (!v) return;
+  v.muted = true; v.defaultMuted = true; v.volume = 0; v.loop = true; v.playsInline = true;
+  const go = () => { if (v.paused && !document.hidden) v.play().catch(() => {}); };
+  ['pause', 'ended', 'stalled', 'suspend'].forEach(ev => v.addEventListener(ev, () => setTimeout(go, 300)));
+  document.addEventListener('visibilitychange', go);
+  addEventListener('pageshow', go); addEventListener('focus', go);
+  ['pointerdown', 'touchend', 'keydown'].forEach(ev => addEventListener(ev, go, { passive: true }));
+  setInterval(go, 3000);
+  go();
+})();
 
 function calTile() {
   const t = todayStr();
