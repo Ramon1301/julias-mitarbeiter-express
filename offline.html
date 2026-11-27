@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Keine Internetverbindung – GIG</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+video{position:fixed;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+video::-webkit-media-controls,video::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none}
+.top{position:fixed;left:0;right:0;top:0;z-index:1;display:flex;align-items:center;justify-content:center;gap:10px;padding:calc(env(safe-area-inset-top) + 18px) 16px 34px;
+  background:linear-gradient(180deg,rgba(0,0,0,.88),rgba(0,0,0,.55) 60%,transparent);color:#ff3b3b;font:900 22px/1.2 -apple-system,system-ui,sans-serif;text-align:center;text-shadow:0 2px 12px rgba(255,0,0,.35)}
+svg{flex:none;width:30px;height:30px;animation:b 1.6s ease-in-out infinite}
+@keyframes b{50%{opacity:.35}}
+</style>
+</head>
+<body>
+<!-- Wird vom Service Worker gezeigt, wenn die App ohne Internet geöffnet wird -->
+<video id="v" muted loop playsinline autoplay></video>
+<div class="top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 4.2-2.6M9.9 5.1A15 15 0 0 1 22 8.8"/><path d="M5 12.6a10 10 0 0 1 3.4-2.1M13.6 10a10 10 0 0 1 5.4 2.6"/><path d="M8.5 16.3a5 5 0 0 1 7 0"/><circle cx="12" cy="20" r="1.2" fill="currentColor"/><path d="M3 3l18 18"/></svg><b>Keine Internetverbindung</b></div>
+<script>
+const v = document.getElementById('v');
+// Video aus dem Offline-Speicher als Blob abspielen (funktioniert ohne Netz, auch auf dem iPhone)
+(async () => {
+  try { const r = await caches.match('assets/offline-spot.mp4'); if (r) v.src = URL.createObjectURL(await r.blob()); } catch {}
+  v.muted = true; v.play().catch(() => {});
+})();
+addEventListener('pointerdown', () => v.play().catch(() => {}));
+// Sobald das Netz zurück ist: richtige Seite laden
+const back = () => location.replace('./' + location.search + location.hash);
+addEventListener('online', back);
+setInterval(() => { if (navigator.onLine) fetch('./?ping=' + Date.now(), { cache: 'no-store' }).then(r => r.ok && back()).catch(() => {}); }, 5000);
+</script>
+</body>
+</html>

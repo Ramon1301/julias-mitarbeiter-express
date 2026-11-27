@@ -274,6 +274,14 @@ main{max-width:880px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-rig
 .pa-btn{flex:none;border:0;border-radius:999px;padding:8px 16px;font-weight:800;font-size:14px;color:#fff;background:linear-gradient(135deg,#a855f7,#ec4899)}
 .pa-btn:disabled{opacity:.6}
 .pa-x{flex:none;border:0;background:none;color:var(--muted);padding:4px;display:flex}
+.offline{position:fixed;inset:0;z-index:100000;background:#000;display:flex;align-items:center;justify-content:center}
+.offline video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.offline video::-webkit-media-controls,.offline video::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none}
+.off-top{position:absolute;left:0;right:0;top:0;z-index:1;display:flex;align-items:center;justify-content:center;gap:10px;padding:calc(env(safe-area-inset-top) + 18px) 16px 34px;
+  background:linear-gradient(180deg,rgba(0,0,0,.88),rgba(0,0,0,.55) 60%,transparent);color:#ff3b3b;text-align:center}
+.off-top b{font-size:22px;font-weight:900;letter-spacing:-.01em;text-shadow:0 2px 12px rgba(255,0,0,.35)}
+.off-ico{flex:none;width:30px;height:30px;animation:offBlink 1.6s ease-in-out infinite}
+@keyframes offBlink{50%{opacity:.35}}
 .ad-strip{position:relative;margin:0 0 16px;border-radius:16px;overflow:hidden;aspect-ratio:1280/200;background:#0b2a2e url(assets/chefin-banner.jpg) center/cover no-repeat;
   border:1px solid var(--border);box-shadow:0 14px 30px -22px rgba(0,0,0,.9);transform:translateZ(0)}
 .ad-strip video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
@@ -455,6 +463,11 @@ canvas#confetti{position:fixed;top:0;left:0;width:100%;height:100%;pointer-event
 </style>
 </head>
 <body>
+<!-- Kein Internet: Vollbild mit Video in Dauerschleife (Video liegt vorab im Speicher, läuft also ohne Netz) -->
+<div id="offline" class="offline hidden" role="alert" aria-live="assertive">
+  <video id="offVid" muted loop playsinline autoplay disablepictureinpicture disableremoteplayback></video>
+  <div class="off-top"><svg class="off-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 4.2-2.6M9.9 5.1A15 15 0 0 1 22 8.8"/><path d="M5 12.6a10 10 0 0 1 3.4-2.1M13.6 10a10 10 0 0 1 5.4 2.6"/><path d="M8.5 16.3a5 5 0 0 1 7 0"/><circle cx="12" cy="20" r="1.2" fill="currentColor"/><path d="M3 3l18 18"/></svg><b>Keine Internetverbindung</b></div>
+</div>
 
 <!-- ============ Wer bist du? ============ -->
 <section id="login" class="hidden">
@@ -536,7 +549,7 @@ if (hashKey) save('todo.key', hashKey);
 const STORE_KEY = hashKey || load('todo.key', null);
 const STORE_URL = 'https://textdb.dev/api/data/' + STORE_KEY;
 const POLL_MS = 5000;
-const BUILD = '20261127-214608';
+const BUILD = '20261127-215619';
 
 const PEOPLE = ['Julia', 'Joris', 'Ramon'];
 const PRIOS = {
@@ -750,6 +763,36 @@ function mutate(fn, activity) {
   sync();
 }
 addEventListener('online', () => { failDelay = 2000; sync(); });
+
+/* ===================== Kein Internet ===================== */
+// Das Video wird vorab (mit Netz) in den Speicher geladen; fällt das Netz weg, läuft es als Vollbild in Schleife.
+const OFF_VIDEO = 'assets/offline-spot.mp4';
+let offBlobUrl = null;
+async function prepOfflineVideo() {
+  if (offBlobUrl) return;
+  try {
+    let r = 'caches' in window ? await caches.match(OFF_VIDEO) : null;
+    if (!r) r = await fetch(OFF_VIDEO);
+    if (r && r.ok) offBlobUrl = URL.createObjectURL(await r.blob());
+  } catch {}
+}
+async function setOffline(off) {
+  const el = document.getElementById('offline'), v = document.getElementById('offVid');
+  if (off) {
+    el.classList.remove('hidden');
+    if (!offBlobUrl) await prepOfflineVideo();   // kommt aus dem Offline-Speicher des Service Workers
+    if (navigator.onLine) { el.classList.add('hidden'); return; }   // Netz in der Zwischenzeit zurück
+    const src = offBlobUrl || OFF_VIDEO;
+    if (v.getAttribute('src') !== src) v.src = src;
+    v.muted = true; el.classList.remove('hidden'); v.play().catch(() => {});
+  } else { el.classList.add('hidden'); v.pause(); }
+}
+addEventListener('offline', () => setOffline(true));
+addEventListener('online', () => setOffline(false));
+// iOS stoppt Videos manchmal (Stromsparmodus): beim Tippen weiterspielen
+document.getElementById('offline').addEventListener('pointerdown', () => document.getElementById('offVid').play().catch(() => {}));
+if (navigator.onLine === false) setOffline(true);
+setTimeout(prepOfflineVideo, 2500);
 
 // Tägliche Sicherung: je Wochentag ein Speicherplatz → die letzten 7 Tage bleiben erhalten
 let backupTried = false;
